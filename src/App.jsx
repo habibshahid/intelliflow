@@ -7,6 +7,7 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
   ReactFlowProvider,
+  MarkerType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -43,7 +44,6 @@ function FlowCanvas() {
     
     if (!sourceBlockDef || !targetBlockDef) return false;
 
-    // Count existing connections
     const sourceConnections = edges.filter(e => 
       e.source === connection.source && e.sourceHandle === connection.sourceHandle
     ).length;
@@ -52,7 +52,6 @@ function FlowCanvas() {
       e.target === connection.target && e.targetHandle === connection.targetHandle
     ).length;
 
-    // Check max limits (-1 means unlimited)
     if (sourceBlockDef.outputs.max !== -1 && sourceConnections >= sourceBlockDef.outputs.max) return false;
     if (targetBlockDef.inputs.max !== -1 && targetConnections >= targetBlockDef.inputs.max) return false;
 
@@ -62,7 +61,16 @@ function FlowCanvas() {
   const onConnect = useCallback(
     (params) => {
       if (isValidConnection(params)) {
-        setEdges((eds) => addEdge({ ...params, animated: true }, eds));
+        setEdges((eds) => addEdge({
+          ...params,
+          animated: true,
+          type: 'smoothstep',
+          style: { stroke: '#94a3b8', strokeWidth: 2 },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: '#94a3b8',
+          },
+        }, eds));
       }
     },
     [isValidConnection, setEdges]
@@ -89,13 +97,19 @@ function FlowCanvas() {
         y: event.clientY,
       });
 
+      // Initialize outputLabels for dynamic output blocks
+      const outputLabels = blockDef.outputs.mode === 'dynamic'
+        ? [...(blockDef.outputs.labels || [])]
+        : undefined;
+
       const newNode = {
         id: `node-${nodeId++}`,
         type: 'custom',
         position,
         data: { 
           blockDef,
-          properties: {}
+          properties: {},
+          ...(outputLabels && { outputLabels })
         },
       };
 
@@ -123,6 +137,12 @@ function FlowCanvas() {
         return node;
       })
     );
+    setSelectedNode(prev => {
+      if (prev && prev.id === nodeId) {
+        return { ...prev, data: newData };
+      }
+      return prev;
+    });
   }, [setNodes]);
 
   // Delete node
@@ -146,6 +166,11 @@ function FlowCanvas() {
         x: node.position.x + 50,
         y: node.position.y + 50,
       },
+      data: {
+        ...node.data,
+        properties: { ...node.data.properties },
+        ...(node.data.outputLabels && { outputLabels: [...node.data.outputLabels] })
+      }
     };
 
     setNodes((nds) => nds.concat(newNode));
@@ -159,7 +184,8 @@ function FlowCanvas() {
         id: node.id,
         type: node.type === 'custom' ? node.data.blockDef.id : node.type,
         position: node.position,
-        properties: node.data.properties || {}
+        properties: node.data.properties || {},
+        ...(node.data.outputLabels && { outputLabels: node.data.outputLabels })
       })),
       connections: edges.map(edge => ({
         id: edge.id,
@@ -201,7 +227,8 @@ function FlowCanvas() {
             position: block.position,
             data: {
               blockDef: blockTypes[block.type],
-              properties: block.properties || {}
+              properties: block.properties || {},
+              ...(block.outputLabels && { outputLabels: block.outputLabels })
             }
           }));
           
@@ -211,7 +238,13 @@ function FlowCanvas() {
             target: conn.to,
             sourceHandle: conn.sourceHandle,
             targetHandle: conn.targetHandle,
-            animated: true
+            animated: true,
+            type: 'smoothstep',
+            style: { stroke: '#94a3b8', strokeWidth: 2 },
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              color: '#94a3b8',
+            },
           }));
           
           setNodes(importedNodes);
@@ -252,7 +285,7 @@ function FlowCanvas() {
   }, [reactFlowInstance]);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
+    <div style={{ display: 'flex', height: '100vh', width: '100vw', background: '#f9fafb' }}>
       <Sidebar blockTypes={blockTypes} />
       
       <div ref={reactFlowWrapper} style={{ flex: 1, position: 'relative' }}>
@@ -280,7 +313,12 @@ function FlowCanvas() {
           isValidConnection={isValidConnection}
           fitView
         >
-          <Background variant="dots" gap={16} size={1} />
+          <Background 
+            variant="dots" 
+            gap={16} 
+            size={2}
+            color="#2e2f2f76"
+          />
           <Controls />
           <MiniMap 
             nodeColor={(node) => {
@@ -288,7 +326,10 @@ function FlowCanvas() {
             }}
             style={{
               background: '#f8f9fa',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
             }}
+            maskColor="rgba(0, 0, 0, 0.1)"
           />
         </ReactFlow>
       </div>

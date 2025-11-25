@@ -17,26 +17,32 @@ const Sidebar = ({ blockTypes }) => {
 
   return (
     <div style={{
-      width: '260px',
-      background: '#f8f9fa',
-      borderRight: '1px solid #ddd',
-      padding: '16px',
+      width: '280px',
+      background: '#fff',
+      borderRight: '1px solid #e5e7eb',
+      padding: '20px 16px',
       overflowY: 'auto',
       height: '100vh'
     }}>
-      <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: 'bold' }}>
-        Block Library
+      <h3 style={{ 
+        margin: '0 0 20px 0', 
+        fontSize: '16px', 
+        fontWeight: '700',
+        color: '#1a1a1a',
+        letterSpacing: '-0.01em'
+      }}>
+        Blocks
       </h3>
       
       {Object.entries(categories).map(([category, blocks]) => (
-        <div key={category} style={{ marginBottom: '24px' }}>
+        <div key={category} style={{ marginBottom: '28px' }}>
           <div style={{ 
-            fontSize: '12px', 
-            fontWeight: 'bold', 
+            fontSize: '11px', 
+            fontWeight: '600', 
             textTransform: 'uppercase',
-            color: '#666',
-            marginBottom: '8px',
-            letterSpacing: '0.5px'
+            color: '#6b7280',
+            marginBottom: '10px',
+            letterSpacing: '0.05em'
           }}>
             {category}
           </div>
@@ -47,35 +53,61 @@ const Sidebar = ({ blockTypes }) => {
               draggable
               onDragStart={(e) => onDragStart(e, block.id)}
               style={{
-                background: 'white',
-                border: `2px solid ${block.color}`,
-                borderRadius: '6px',
-                padding: '10px',
+                background: '#fff',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                padding: '10px 12px',
                 marginBottom: '8px',
                 cursor: 'grab',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                transition: 'transform 0.2s, box-shadow 0.2s',
+                gap: '10px',
+                transition: 'all 0.2s ease',
               }}
               onMouseOver={(e) => {
-                e.currentTarget.style.transform = 'translateX(4px)';
-                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                e.currentTarget.style.borderColor = block.color;
+                e.currentTarget.style.background = `${block.color}08`;
+                e.currentTarget.style.transform = 'translateX(2px)';
               }}
               onMouseOut={(e) => {
+                e.currentTarget.style.borderColor = '#e5e7eb';
+                e.currentTarget.style.background = '#fff';
                 e.currentTarget.style.transform = 'translateX(0)';
-                e.currentTarget.style.boxShadow = 'none';
               }}
             >
-              <div style={{ fontSize: '20px' }}>{block.icon}</div>
-              <div>
-                <div style={{ fontWeight: '500', fontSize: '13px' }}>
+              <div 
+                style={{ 
+                  fontSize: '18px',
+                  width: '28px',
+                  height: '28px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: `${block.color}15`,
+                  borderRadius: '6px',
+                  flexShrink: 0,
+                }}
+              >
+                {block.icon}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ 
+                  fontWeight: '600', 
+                  fontSize: '13px',
+                  color: '#1a1a1a',
+                  lineHeight: '1.3',
+                  marginBottom: '2px'
+                }}>
                   {block.name}
                 </div>
-                <div style={{ fontSize: '10px', color: '#666' }}>
-                  {block.inputs.max > 0 && `${block.inputs.max === -1 ? '∞' : block.inputs.max} in`}
-                  {block.inputs.max > 0 && block.outputs.max > 0 && ' • '}
-                  {block.outputs.max > 0 && `${block.outputs.max === -1 ? '∞' : block.outputs.max} out`}
+                <div style={{ fontSize: '11px', color: '#6b7280', lineHeight: '1.3' }}>
+                  {block.inputs.max > 0 && (
+                    <span>{block.inputs.max === -1 ? '∞' : block.inputs.max} in</span>
+                  )}
+                  {block.inputs.max > 0 && block.outputs.max > 0 && <span> • </span>}
+                  {block.outputs.max > 0 && (
+                    <span>{block.outputs.max === -1 ? '∞' : block.outputs.max} out</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -84,14 +116,17 @@ const Sidebar = ({ blockTypes }) => {
       ))}
       
       <div style={{
-        marginTop: '32px',
+        marginTop: '24px',
         padding: '12px',
-        background: '#e3f2fd',
-        borderRadius: '6px',
+        background: '#eff6ff',
+        borderRadius: '8px',
         fontSize: '12px',
-        color: '#1976d2'
+        color: '#1e40af',
+        lineHeight: '1.5',
+        border: '1px solid #dbeafe'
       }}>
-        <strong>💡 Tip:</strong> Drag blocks onto the canvas to build your flow
+        <div style={{ fontWeight: '600', marginBottom: '4px' }}>💡 Tip</div>
+        Drag blocks onto the canvas to build your flow
       </div>
     </div>
   );

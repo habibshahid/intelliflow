@@ -1,4 +1,36 @@
 {
+  "systemVariables": [
+    {
+      "key": "{{user.name}}",
+      "label": "User Name",
+      "description": "Current user's name"
+    },
+    {
+      "key": "{{user.email}}",
+      "label": "User Email",
+      "description": "Current user's email address"
+    },
+    {
+      "key": "{{timestamp}}",
+      "label": "Current Timestamp",
+      "description": "Current date and time"
+    },
+    {
+      "key": "{{date}}",
+      "label": "Current Date",
+      "description": "Current date (YYYY-MM-DD)"
+    },
+    {
+      "key": "{{flow.id}}",
+      "label": "Flow ID",
+      "description": "Current flow identifier"
+    },
+    {
+      "key": "{{input.data}}",
+      "label": "Input Data",
+      "description": "Data from previous block"
+    }
+  ],
   "blockTypes": {
     "audio_playback": {
       "id": "audio_playback",
@@ -13,22 +45,24 @@
       },
       "outputs": {
         "min": 1,
-        "max": 3,
-        "labels": ["completed", "error", "skipped"]
+        "max": 5,
+        "labels": ["completed", "error", "skipped"],
+        "mode": "dynamic"
       },
       "properties": [
         {
           "key": "audioFile",
           "label": "Audio File",
-          "type": "text",
-          "placeholder": "audio.mp3",
+          "type": "select_database",
+          "propertyType": "media_audio",
+          "query": "SELECT id, filename, CONCAT('https://iman.contegris.com/intellicon/', filepath, '.', extension) AS file_url FROM yovo_tbl_audio_files",
+          "valueField": "id",
+          "labelField": "filename",
+          "previewField": "file_url",
+          "placeholder": "Select audio file...",
+          "searchable": true,
+          "searchPlaceholder": "Search audio files...",
           "required": true
-        },
-        {
-          "key": "loop",
-          "label": "Loop",
-          "type": "boolean",
-          "default": false
         },
         {
           "key": "volume",
@@ -37,6 +71,86 @@
           "default": 100,
           "min": 0,
           "max": 100
+        }
+      ]
+    },
+    "image_display": {
+      "id": "image_display",
+      "name": "Image Display",
+      "category": "media",
+      "icon": "🖼️",
+      "color": "#E91E63",
+      "inputs": {
+        "min": 1,
+        "max": 1,
+        "labels": ["trigger"]
+      },
+      "outputs": {
+        "min": 2,
+        "max": 2,
+        "labels": ["success", "error"],
+        "mode": "fixed"
+      },
+      "properties": [
+        {
+          "key": "imageFile",
+          "label": "Image File",
+          "type": "select_database",
+          "propertyType": "media_image",
+          "query": "SELECT id, title, image_url FROM images WHERE active = 1",
+          "valueField": "id",
+          "labelField": "title",
+          "previewField": "image_url",
+          "placeholder": "Select image...",
+          "searchable": true,
+          "searchPlaceholder": "Search images..."
+        },
+        {
+          "key": "duration",
+          "label": "Display Duration (seconds)",
+          "type": "number",
+          "default": 5,
+          "min": 1,
+          "max": 60
+        }
+      ]
+    },
+    "video_player": {
+      "id": "video_player",
+      "name": "Video Player",
+      "category": "media",
+      "icon": "🎬",
+      "color": "#9C27B0",
+      "inputs": {
+        "min": 1,
+        "max": 1,
+        "labels": ["trigger"]
+      },
+      "outputs": {
+        "min": 3,
+        "max": 3,
+        "labels": ["completed", "error", "skipped"],
+        "mode": "fixed"
+      },
+      "properties": [
+        {
+          "key": "videoFile",
+          "label": "Video File",
+          "type": "select_database",
+          "propertyType": "media_video",
+          "query": "SELECT id, title, video_url FROM videos WHERE status = 'active'",
+          "valueField": "id",
+          "labelField": "title",
+          "previewField": "video_url",
+          "placeholder": "Select video...",
+          "searchable": true,
+          "searchPlaceholder": "Search videos..."
+        },
+        {
+          "key": "autoplay",
+          "label": "Autoplay",
+          "type": "boolean",
+          "default": true
         }
       ]
     },
@@ -54,7 +168,8 @@
       "outputs": {
         "min": 2,
         "max": 2,
-        "labels": ["success", "error"]
+        "labels": ["success", "error"],
+        "mode": "fixed"
       },
       "properties": [
         {
@@ -62,7 +177,8 @@
           "label": "Text",
           "type": "textarea",
           "placeholder": "Enter text to speak...",
-          "required": true
+          "required": true,
+          "showPredefinedVariables": true
         },
         {
           "key": "voice",
@@ -96,7 +212,8 @@
       "outputs": {
         "min": 2,
         "max": 2,
-        "labels": ["true", "false"]
+        "labels": ["true", "false"],
+        "mode": "fixed"
       },
       "properties": [
         {
@@ -104,13 +221,8 @@
           "label": "Condition",
           "type": "textarea",
           "placeholder": "e.g., value > 100",
-          "required": true
-        },
-        {
-          "key": "variable",
-          "label": "Variable Name",
-          "type": "text",
-          "placeholder": "e.g., input"
+          "required": true,
+          "showPredefinedVariables": true
         }
       ]
     },
@@ -128,14 +240,15 @@
       "outputs": {
         "min": 2,
         "max": 2,
-        "labels": ["success", "error"]
+        "labels": ["success", "error"],
+        "mode": "fixed"
       },
       "properties": [
         {
           "key": "method",
           "label": "Method",
           "type": "select",
-          "options": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+          "options": ["GET", "POST", "PUT", "DELETE"],
           "default": "GET"
         },
         {
@@ -143,19 +256,15 @@
           "label": "URL",
           "type": "text",
           "placeholder": "https://api.example.com/endpoint",
-          "required": true
-        },
-        {
-          "key": "headers",
-          "label": "Headers (JSON)",
-          "type": "textarea",
-          "placeholder": "{\n  \"Content-Type\": \"application/json\"\n}"
+          "required": true,
+          "showPredefinedVariables": true
         },
         {
           "key": "body",
           "label": "Body",
           "type": "textarea",
-          "placeholder": "Request body (for POST/PUT)"
+          "placeholder": "Request body (for POST/PUT)",
+          "showPredefinedVariables": true
         }
       ]
     },
@@ -173,7 +282,8 @@
       "outputs": {
         "min": 1,
         "max": 1,
-        "labels": ["start"]
+        "labels": ["start"],
+        "mode": "fixed"
       },
       "properties": []
     },
@@ -216,7 +326,8 @@
       "outputs": {
         "min": 1,
         "max": 1,
-        "labels": ["merged"]
+        "labels": ["merged"],
+        "mode": "fixed"
       },
       "properties": [
         {

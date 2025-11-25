@@ -2,140 +2,206 @@ import React from 'react';
 import { Handle, Position } from 'reactflow';
 
 const CustomNode = ({ data, selected }) => {
-  const { blockDef, properties = {} } = data;
+  const { blockDef, properties = {}, outputLabels = [] } = data;
 
-  // Calculate handle positions
-  const inputCount = blockDef.outputs.max;
-  const outputCount = blockDef.outputs.max;
+  // Get output labels
+  const getOutputLabels = () => {
+    if (blockDef.outputs.mode === 'dynamic' && outputLabels.length > 0) {
+      return outputLabels;
+    }
+    return blockDef.outputs.labels || [];
+  };
+
+  const activeOutputLabels = getOutputLabels();
+  const hasOutputs = blockDef.outputs.max > 0;
+
+  // Get property preview
+  const getPropertyPreview = () => {
+    const entries = Object.entries(properties);
+    if (entries.length === 0) return null;
+    const [key, value] = entries[0];
+    const displayValue = String(value).substring(0, 30);
+    return displayValue ? `${displayValue}${String(value).length > 30 ? '...' : ''}` : null;
+  };
+
+  const propertyPreview = getPropertyPreview();
 
   return (
     <div
       style={{
-        background: selected ? '#fff' : '#fafafa',
-        border: `2px solid ${selected ? blockDef.color : '#ddd'}`,
-        borderRadius: '6px',
-        padding: '8px 10px',
-        minWidth: '120px',
-        maxWidth: '160px',
-        boxShadow: selected ? '0 4px 12px rgba(0,0,0,0.15)' : '0 2px 6px rgba(0,0,0,0.1)',
+        background: '#fff',
+        border: selected ? `2px solid ${blockDef.color}` : '1px solid #e0e0e0',
+        borderRadius: '8px',
+        minWidth: '240px',
+        maxWidth: '300px',
+        boxShadow: selected 
+          ? `0 4px 12px ${blockDef.color}20, 0 0 0 4px ${blockDef.color}10`
+          : '0 1px 3px rgba(0,0,0,0.1)',
+        transition: 'all 0.2s ease',
+        overflow: 'visible',
+        position: 'relative',
       }}
     >
-      {/* Input Handles */}
+      {/* Input Handle - Single centered on left */}
       {blockDef.inputs.max > 0 && (
-        <>
-          {Array.from({ length: blockDef.inputs.max === -1 ? 5 : blockDef.inputs.max }).map((_, index) => {
-            const handleId = `input-${index}`;
-            const label = blockDef.inputs.labels?.[index] || `in-${index}`;
-            const maxInputs = blockDef.inputs.max === -1 ? 5 : blockDef.inputs.max;
-            const topOffset = maxInputs === 1 
-              ? 50 
-              : (100 / (maxInputs + 1)) * (index + 1);
-
-            return (
-              <div key={handleId}>
-                <Handle
-                  type="target"
-                  position={Position.Left}
-                  id={handleId}
-                  style={{
-                    top: `${topOffset}%`,
-                    background: blockDef.color,
-                    width: '10px',
-                    height: '10px',
-                    border: '2px solid white',
-                  }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: '14px',
-                    top: `calc(${topOffset}% - 7px)`,
-                    fontSize: '9px',
-                    color: '#666',
-                    pointerEvents: 'none',
-                  }}
-                >
-                  {label}
-                </div>
-              </div>
-            );
-          })}
-        </>
+        <Handle
+          type="target"
+          position={Position.Left}
+          id="input-0"
+          style={{
+            top: '30px',
+            background: '#fff',
+            width: '12px',
+            height: '12px',
+            border: `2px solid ${blockDef.color}`,
+            left: '-6px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          }}
+        />
       )}
 
-      {/* Node Content */}
-      <div style={{ textAlign: 'center', marginBottom: '4px' }}>
-        <div style={{ fontSize: '20px', marginBottom: '2px' }}>{blockDef.icon}</div>
-        <div style={{ fontWeight: 'bold', fontSize: '12px', color: '#333', lineHeight: '1.2' }}>
-          {blockDef.name}
+      {/* HEADER SECTION */}
+      <div style={{ 
+        padding: '12px 16px',
+        borderBottom: hasOutputs && activeOutputLabels.length > 0 ? '1px solid #e5e7eb' : 'none',
+        background: '#fff',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Icon */}
+          <div 
+            style={{ 
+              fontSize: '18px',
+              flexShrink: 0,
+              width: '28px',
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: `${blockDef.color}15`,
+              borderRadius: '6px',
+            }}
+          >
+            {blockDef.icon}
+          </div>
+
+          {/* Block Info */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ 
+              fontWeight: '600', 
+              fontSize: '14px', 
+              color: '#1a1a1a',
+              lineHeight: '1.3',
+            }}>
+              {blockDef.name}
+            </div>
+
+            {propertyPreview && (
+              <div style={{ 
+                fontSize: '11px', 
+                color: '#9ca3af',
+                lineHeight: '1.3',
+                marginTop: '2px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}>
+                {propertyPreview}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Show some properties */}
-      {Object.keys(properties).length > 0 && (
-        <div style={{ 
-          fontSize: '10px', 
-          color: '#666', 
-          marginTop: '6px',
-          paddingTop: '6px',
-          borderTop: '1px solid #eee'
-        }}>
-          {Object.entries(properties).slice(0, 1).map(([key, value]) => (
-            <div key={key} style={{ 
-              overflow: 'hidden', 
-              textOverflow: 'ellipsis', 
-              whiteSpace: 'nowrap',
-              marginBottom: '2px'
-            }}>
-              <strong>{key}:</strong> {String(value).substring(0, 15)}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Output Handles */}
-      {blockDef.outputs.max > 0 && (
-        <>
-          {Array.from({ length: blockDef.outputs.max === -1 ? 5 : blockDef.outputs.max }).map((_, index) => {
+      {/* OUTPUT BRANCHES AS ROWS */}
+      {hasOutputs && activeOutputLabels.length > 0 ? (
+        <div style={{ position: 'relative' }}>
+          {activeOutputLabels.map((label, index) => {
             const handleId = `output-${index}`;
-            const label = blockDef.outputs.labels?.[index] || `out-${index}`;
-            const maxOutputs = blockDef.outputs.max === -1 ? 5 : blockDef.outputs.max;
-            const topOffset = maxOutputs === 1 
-              ? 50 
-              : (100 / (maxOutputs + 1)) * (index + 1);
-
+            
             return (
-              <div key={handleId}>
+              <div
+                key={handleId}
+                style={{
+                  position: 'relative',
+                  padding: '10px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderBottom: index < activeOutputLabels.length - 1 ? '1px solid #f3f4f6' : 'none',
+                  background: 'transparent',
+                  transition: 'background 0.15s ease',
+                  minHeight: '40px',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#f9fafb';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                {/* Branch Label */}
+                <div style={{
+                  fontSize: '13px',
+                  color: '#374151',
+                  fontWeight: '500',
+                  flex: 1,
+                  paddingRight: '30px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {label}
+                </div>
+
+                {/* Arrow indicator */}
+                <div style={{
+                  fontSize: '12px',
+                  color: '#9ca3af',
+                  position: 'absolute',
+                  right: '20px',
+                  pointerEvents: 'none',
+                }}>
+                  →
+                </div>
+
+                {/* Output Handle for this row */}
                 <Handle
                   type="source"
                   position={Position.Right}
                   id={handleId}
                   style={{
-                    top: `${topOffset}%`,
-                    background: blockDef.color,
-                    width: '10px',
-                    height: '10px',
-                    border: '2px solid white',
+                    position: 'absolute',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: '#fff',
+                    width: '12px',
+                    height: '12px',
+                    border: `2px solid ${blockDef.color}`,
+                    right: '-6px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                   }}
                 />
-                <div
-                  style={{
-                    position: 'absolute',
-                    right: '14px',
-                    top: `calc(${topOffset}% - 7px)`,
-                    fontSize: '9px',
-                    color: '#666',
-                    pointerEvents: 'none',
-                    textAlign: 'right',
-                  }}
-                >
-                  {label}
-                </div>
               </div>
             );
           })}
-        </>
-      )}
+        </div>
+      ) : hasOutputs ? (
+        /* Fallback for blocks with no labels */
+        <Handle
+          type="source"
+          position={Position.Right}
+          id="output-0"
+          style={{
+            top: '30px',
+            background: '#fff',
+            width: '12px',
+            height: '12px',
+            border: `2px solid ${blockDef.color}`,
+            right: '-6px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          }}
+        />
+      ) : null}
     </div>
   );
 };
