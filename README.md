@@ -1,156 +1,225 @@
-# Flow App Builder
+# IntelliFlow - Simple Database Select
 
-A drag-and-drop visual application builder with dynamic block creation based on JSON definitions.
+## 🎯 What This Does
 
-## Features
+Populate dropdowns from database queries. Simple.
 
-✅ **Drag & Drop Interface** - Drag blocks from the sidebar onto the canvas
-✅ **Dynamic Block System** - Define new block types via JSON configuration
-✅ **Visible Connection Handles** - Input/output connectors are always visible
-✅ **Multiple Connection Types** - Support for 0 to many input/output connections
-✅ **Property Editor** - Edit block properties in the right panel
-✅ **Clone Blocks** - Duplicate existing blocks with one click
-✅ **Zoom Controls** - Zoom in/out and fit view
-✅ **Export/Import** - Save and load flows as JSON
-✅ **Connection Validation** - Prevents invalid connections
-✅ **Minimap** - Overview of entire flow
-✅ **100% Open Source** - React Flow, React, Vite
+**No connection management on frontend** - backend handles all database connections.
 
-## Block Types Included
+---
 
-1. **Start** (▶️) - Entry point, 0 inputs, up to 5 outputs
-2. **Audio Playback** (🔊) - Play audio files, 1 input, up to 3 outputs
-3. **Text to Speech** (💬) - Convert text to speech, 1 input, 2 outputs
-4. **If/Else** (🔀) - Conditional logic, 1 input, 2 outputs (true/false)
-5. **HTTP Request** (🌐) - API calls, 1 input, 2 outputs (success/error)
-6. **End** (⏹️) - Termination point, up to 10 inputs, 0 outputs
-7. **Merge** (🔗) - Merge multiple inputs, unlimited inputs, 1 output
+## ⚡ Quick Setup (5 minutes)
 
-## How to Add New Block Types
+### 1. Configure Backend Database
 
-Edit `src/blockDefinitions.json`:
-
-```json
-{
-  "blockTypes": {
-    "your_block": {
-      "id": "your_block",
-      "name": "Your Block Name",
-      "category": "custom",
-      "icon": "🎯",
-      "color": "#FF5722",
-      "inputs": {
-        "min": 1,
-        "max": 3,
-        "labels": ["input1", "input2", "input3"]
-      },
-      "outputs": {
-        "min": 1,
-        "max": 2,
-        "labels": ["success", "error"]
-      },
-      "properties": [
-        {
-          "key": "propertyName",
-          "label": "Property Label",
-          "type": "text",
-          "placeholder": "Enter value...",
-          "required": true
-        }
-      ]
-    }
-  }
-}
+Edit `backend/.env`:
+```env
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=intelliflow
 ```
 
-### Supported Property Types
+### 2. Start Backend
 
-- `text` - Single line text input
-- `textarea` - Multi-line text input
-- `number` - Numeric input with min/max/step
-- `boolean` - Checkbox
-- `select` - Dropdown with options
-
-### Unlimited Connections
-
-To allow unlimited inputs or outputs on a block, set `max` to `-1`:
-
-```json
-"inputs": {
-  "min": 1,
-  "max": -1,   // Unlimited inputs!
-  "labels": ["input"]
-}
+```bash
+cd backend
+npm install
+npm start
 ```
 
-The UI will display `∞` to indicate unlimited connections. Useful for blocks like:
-- Merge blocks (combine many inputs)
-- Broadcast blocks (send to many outputs)
-- Logger blocks (accept any number of inputs)
-
-## Installation
+### 3. Start Frontend
 
 ```bash
 npm install
-```
-
-## Run Development Server
-
-```bash
 npm run dev
 ```
 
-Visit `http://localhost:3000`
+**Done!** ✓
 
-## Build for Production
+---
 
-```bash
-npm run build
-```
+## 📝 How to Use
 
-## Usage
-
-1. **Add Blocks**: Drag blocks from the left sidebar onto the canvas
-2. **Connect Blocks**: Click and drag from an output handle to an input handle
-3. **Edit Properties**: Select a block to edit its properties in the right panel
-4. **Clone Block**: Select a block and click "Clone Block" in the property panel
-5. **Delete Block**: Select a block and click "Delete Block"
-6. **Export Flow**: Click the download icon in the toolbar to save as JSON
-7. **Import Flow**: Click the upload icon to load a saved flow
-8. **Zoom**: Use the zoom controls or mouse wheel
-
-## JSON Export Format
+### In blockDefinitions.json:
 
 ```json
 {
-  "version": "1.0",
-  "blocks": [
-    {
-      "id": "node-1",
-      "type": "start",
-      "position": { "x": 100, "y": 100 },
-      "properties": {}
-    }
-  ],
-  "connections": [
-    {
-      "id": "edge-1",
-      "from": "node-1",
-      "to": "node-2",
-      "sourceHandle": "output-0",
-      "targetHandle": "input-0"
-    }
-  ]
+  "key": "audioFile",
+  "label": "Audio File",
+  "type": "select_database",
+  "query": "SELECT id, title, file_url FROM audio_files WHERE status = 1",
+  "valueField": "id",
+  "labelField": "title"
 }
 ```
 
-## Tech Stack
+### With Preview (Audio/Image/Video):
 
-- **React 18** - UI library
-- **React Flow 11** - Node-based graph editor
-- **Vite** - Build tool
-- **Lucide React** - Icons
+```json
+{
+  "key": "audioFile",
+  "type": "select_database",
+  "propertyType": "media_audio",
+  "query": "SELECT id, title, file_url FROM audio_files",
+  "valueField": "id",
+  "labelField": "title",
+  "previewField": "file_url",
+  "searchable": true,
+  "searchPlaceholder": "Search audio files..."
+}
+```
 
-## License
+---
 
-Open Source (MIT)
+## 🔧 Property Fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `type` | ✅ | `"select_database"` |
+| `query` | ✅ | SQL query |
+| `valueField` | ✅ | Column for option value |
+| `labelField` | ✅ | Column for option label |
+| `propertyType` | ❌ | `media_audio`, `media_image`, `media_video` |
+| `previewField` | ❌ | Column for preview URL |
+| `placeholder` | ❌ | Dropdown placeholder |
+| `searchable` | ❌ | Enable search/filter (`true`/`false`) |
+| `searchPlaceholder` | ❌ | Search input placeholder |
+
+---
+
+## 🎨 Preview Types
+
+### Audio
+```json
+{
+  "propertyType": "media_audio",
+  "previewField": "file_url"
+}
+```
+Shows audio player when option selected.
+
+### Image
+```json
+{
+  "propertyType": "media_image",
+  "previewField": "image_url"
+}
+```
+Shows image thumbnail when option selected.
+
+### Video
+```json
+{
+  "propertyType": "media_video",
+  "previewField": "video_url"
+}
+```
+Shows video player when option selected.
+
+---
+
+## 📊 Example Database
+
+```sql
+CREATE TABLE audio_files (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  title VARCHAR(255),
+  file_url VARCHAR(500),
+  status TINYINT DEFAULT 1
+);
+
+INSERT INTO audio_files VALUES
+(1, 'Welcome Message', 'https://example.com/welcome.mp3', 1),
+(2, 'Background Music', 'https://example.com/music.mp3', 1);
+```
+
+---
+
+## 🗂️ File Structure
+
+```
+intelliflow-simple/
+├── backend/
+│   ├── server.js       ← API + database connection
+│   ├── package.json
+│   └── .env.example    ← Configure database here
+│
+├── src/
+│   ├── components/
+│   │   └── PropertyPanel.jsx  ← Renders select_database
+│   ├── services/
+│   │   └── databaseApi.js     ← API calls
+│   └── blockDefinitions.json  ← Your block configs
+│
+└── .env.example        ← Frontend config
+```
+
+---
+
+## 🔄 How It Works
+
+```
+1. Frontend reads blockDefinitions.json
+2. PropertyPanel sees type: "select_database"
+3. Sends query to backend: POST /api/select-options
+4. Backend executes query on MySQL
+5. Returns options: [{ value, label, preview }]
+6. Frontend shows dropdown + preview
+```
+
+---
+
+## 🐛 Troubleshooting
+
+**Options not loading?**
+- Check backend is running: `curl localhost:3001/health`
+- Check database config in `backend/.env`
+- Test database: `curl localhost:3001/api/test-db`
+
+**Preview not showing?**
+- Set `propertyType` in config
+- Set `previewField` to URL column
+- Check URL is valid
+
+---
+
+## ✅ Benefits of This Approach
+
+✅ **Simple** - No connection management UI  
+✅ **Secure** - Credentials stay on backend  
+✅ **Fast** - Connection pooling  
+✅ **Clean** - Just query + fields in JSON  
+
+---
+
+## 📖 API Reference
+
+### POST /api/select-options
+
+**Request:**
+```json
+{
+  "query": "SELECT id, name FROM users",
+  "valueField": "id",
+  "labelField": "name",
+  "previewField": "avatar_url"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "options": [
+    { "value": 1, "label": "John", "preview": "https://..." },
+    { "value": 2, "label": "Jane", "preview": "https://..." }
+  ],
+  "count": 2
+}
+```
+
+---
+
+**That's it! Simple database selects without the complexity.** 🎉
