@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import ReactFlow, {
   addEdge,
   Background,
@@ -12,6 +12,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 
 import CustomNode from './components/CustomNode';
+import CustomEdge from './components/CustomEdge';
 import Sidebar from './components/Sidebar';
 import PropertyPanel from './components/PropertyPanel';
 import Toolbar from './components/Toolbar';
@@ -19,6 +20,10 @@ import blockDefinitions from './blockDefinitions.json';
 
 const nodeTypes = {
   custom: CustomNode,
+};
+
+const edgeTypes = {
+  custom: CustomEdge,
 };
 
 let nodeId = 1;
@@ -31,6 +36,19 @@ function FlowCanvas() {
   const [selectedNode, setSelectedNode] = useState(null);
 
   const blockTypes = blockDefinitions.blockTypes;
+
+  // Listen for edge delete events from CustomEdge
+  useEffect(() => {
+    const handleDeleteEdge = (event) => {
+      const { edgeId } = event.detail;
+      setEdges((eds) => eds.filter((e) => e.id !== edgeId));
+    };
+
+    window.addEventListener('deleteEdge', handleDeleteEdge);
+    return () => {
+      window.removeEventListener('deleteEdge', handleDeleteEdge);
+    };
+  }, [setEdges]);
 
   // Handle connection validation
   const isValidConnection = useCallback((connection) => {
@@ -63,9 +81,7 @@ function FlowCanvas() {
       if (isValidConnection(params)) {
         setEdges((eds) => addEdge({
           ...params,
-          animated: true,
-          type: 'smoothstep',
-          style: { stroke: '#94a3b8', strokeWidth: 2 },
+          type: 'custom',
           markerEnd: {
             type: MarkerType.ArrowClosed,
             color: '#94a3b8',
@@ -238,9 +254,7 @@ function FlowCanvas() {
             target: conn.to,
             sourceHandle: conn.sourceHandle,
             targetHandle: conn.targetHandle,
-            animated: true,
-            type: 'smoothstep',
-            style: { stroke: '#94a3b8', strokeWidth: 2 },
+            type: 'custom',
             markerEnd: {
               type: MarkerType.ArrowClosed,
               color: '#94a3b8',
@@ -310,19 +324,23 @@ function FlowCanvas() {
           onNodeClick={onNodeClick}
           onPaneClick={onPaneClick}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           isValidConnection={isValidConnection}
+          deleteKeyCode={['Backspace', 'Delete']}
+          edgesFocusable={true}
+          edgesUpdatable={true}
           fitView
         >
           <Background 
             variant="dots" 
             gap={16} 
-            size={2}
-            color="#2e2f2f76"
+            size={1}
+            color="#d1d5db"
           />
           <Controls />
           <MiniMap 
             nodeColor={(node) => {
-              return node.data.blockDef.color;
+              return node.data.blockDef?.color || '#999';
             }}
             style={{
               background: '#f8f9fa',
@@ -330,17 +348,21 @@ function FlowCanvas() {
               borderRadius: '8px',
             }}
             maskColor="rgba(0, 0, 0, 0.1)"
+            pannable={true}
+            zoomable={true}
           />
         </ReactFlow>
       </div>
       
-      <PropertyPanel
-        selectedNode={selectedNode}
-        blockTypes={blockTypes}
-        onUpdateNode={onUpdateNode}
-        onDeleteNode={onDeleteNode}
-        onCloneNode={onCloneNode}
-      />
+      {selectedNode && (
+        <PropertyPanel
+          selectedNode={selectedNode}
+          blockTypes={blockTypes}
+          onUpdateNode={onUpdateNode}
+          onDeleteNode={onDeleteNode}
+          onCloneNode={onCloneNode}
+        />
+      )}
     </div>
   );
 }

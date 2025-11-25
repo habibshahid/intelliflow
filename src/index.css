@@ -41,6 +41,14 @@ button:active {
   transform: scale(0.98);
 }
 
+.react-flow__minimap {
+  cursor: grab;
+}
+
+.react-flow__minimap:active {
+  cursor: grabbing;
+}
+
 /* React Flow customization */
 .react-flow__node {
   cursor: pointer;
