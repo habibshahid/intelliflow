@@ -41,14 +41,6 @@ button:active {
   transform: scale(0.98);
 }
 
-.react-flow__minimap {
-  cursor: grab;
-}
-
-.react-flow__minimap:active {
-  cursor: grabbing;
-}
-
 /* React Flow customization */
 .react-flow__node {
   cursor: pointer;
@@ -71,11 +63,16 @@ button:active {
 .react-flow__edge-path {
   stroke: #94a3b8;
   stroke-width: 2;
+  cursor: pointer;
 }
 
 .react-flow__edge.selected .react-flow__edge-path {
   stroke: #3b82f6;
-  stroke-width: 2.5;
+  stroke-width: 3;
+}
+
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: #64748b;
 }
 
 .react-flow__edge.animated .react-flow__edge-path {
@@ -83,9 +80,18 @@ button:active {
   animation: dashdraw 0.5s linear infinite;
 }
 
+/* Edge interaction area - makes it easier to click */
+.react-flow__edge-interaction {
+  stroke-width: 20;
+  cursor: pointer;
+}
+
 @keyframes dashdraw {
   from {
     stroke-dashoffset: 10;
+  }
+  to {
+    stroke-dashoffset: 0;
   }
 }
 
@@ -100,10 +106,20 @@ button:active {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   background: #fff;
+  cursor: grab;
+}
+
+.react-flow__minimap:active {
+  cursor: grabbing;
 }
 
 .react-flow__minimap-mask {
-  fill: #f3f4f6;
+  fill: rgba(0, 0, 0, 0.1);
+  cursor: grab;
+}
+
+.react-flow__minimap-mask:active {
+  cursor: grabbing;
 }
 
 .react-flow__minimap-node {

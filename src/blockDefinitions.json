@@ -1,342 +1,1273 @@
 {
   "systemVariables": [
-    {
-      "key": "{{user.name}}",
-      "label": "User Name",
-      "description": "Current user's name"
-    },
-    {
-      "key": "{{user.email}}",
-      "label": "User Email",
-      "description": "Current user's email address"
-    },
-    {
-      "key": "{{timestamp}}",
-      "label": "Current Timestamp",
-      "description": "Current date and time"
-    },
-    {
-      "key": "{{date}}",
-      "label": "Current Date",
-      "description": "Current date (YYYY-MM-DD)"
-    },
-    {
-      "key": "{{flow.id}}",
-      "label": "Flow ID",
-      "description": "Current flow identifier"
-    },
-    {
-      "key": "{{input.data}}",
-      "label": "Input Data",
-      "description": "Data from previous block"
-    }
+    {"key": "{{caller_id}}", "label": "Caller ID", "description": "Caller's phone number"},
+    {"key": "{{called_id}}", "label": "Called ID", "description": "Called phone number (DID)"},
+    {"key": "{{unique_id}}", "label": "Unique ID", "description": "Unique call/session identifier"},
+    {"key": "{{channel}}", "label": "Channel", "description": "Communication channel (voice/chat/whatsapp)"},
+    {"key": "{{timestamp}}", "label": "Timestamp", "description": "Current date and time"},
+    {"key": "{{date}}", "label": "Date", "description": "Current date (YYYY-MM-DD)"},
+    {"key": "{{time}}", "label": "Time", "description": "Current time (HH:MM:SS)"},
+    {"key": "{{agent_id}}", "label": "Agent ID", "description": "Assigned agent identifier"},
+    {"key": "{{agent_name}}", "label": "Agent Name", "description": "Assigned agent name"},
+    {"key": "{{queue_name}}", "label": "Queue Name", "description": "Current queue name"},
+    {"key": "{{ivr_input}}", "label": "IVR Input", "description": "Last IVR digit input"},
+    {"key": "{{contact_name}}", "label": "Contact Name", "description": "Contact name from CRM"},
+    {"key": "{{contact_email}}", "label": "Contact Email", "description": "Contact email from CRM"},
+    {"key": "{{contact_phone}}", "label": "Contact Phone", "description": "Contact phone from CRM"}
   ],
   "blockTypes": {
-    "audio_playback": {
-      "id": "audio_playback",
-      "name": "Audio Playback",
-      "category": "media",
-      "icon": "🔊",
-      "color": "#4CAF50",
-      "inputs": {
-        "min": 0,
-        "max": 1,
-        "labels": ["trigger"]
-      },
-      "outputs": {
-        "min": 1,
-        "max": 5,
-        "labels": ["completed", "error", "skipped"],
-        "mode": "dynamic"
-      },
-      "properties": [
-        {
-          "key": "audioFile",
-          "label": "Audio File",
-          "type": "select_database",
-          "propertyType": "media_audio",
-          "query": "SELECT id, filename, CONCAT('https://iman.contegris.com/intellicon/', filepath, '.', extension) AS file_url FROM yovo_tbl_audio_files",
-          "valueField": "id",
-          "labelField": "filename",
-          "previewField": "file_url",
-          "placeholder": "Select audio file...",
-          "searchable": true,
-          "searchPlaceholder": "Search audio files...",
-          "required": true
-        },
-        {
-          "key": "volume",
-          "label": "Volume",
-          "type": "number",
-          "default": 100,
-          "min": 0,
-          "max": 100
-        }
-      ]
-    },
-    "image_display": {
-      "id": "image_display",
-      "name": "Image Display",
-      "category": "media",
-      "icon": "🖼️",
-      "color": "#E91E63",
-      "inputs": {
-        "min": 1,
-        "max": 1,
-        "labels": ["trigger"]
-      },
-      "outputs": {
-        "min": 2,
-        "max": 2,
-        "labels": ["success", "error"],
-        "mode": "fixed"
-      },
-      "properties": [
-        {
-          "key": "imageFile",
-          "label": "Image File",
-          "type": "select_database",
-          "propertyType": "media_image",
-          "query": "SELECT id, title, image_url FROM images WHERE active = 1",
-          "valueField": "id",
-          "labelField": "title",
-          "previewField": "image_url",
-          "placeholder": "Select image...",
-          "searchable": true,
-          "searchPlaceholder": "Search images..."
-        },
-        {
-          "key": "duration",
-          "label": "Display Duration (seconds)",
-          "type": "number",
-          "default": 5,
-          "min": 1,
-          "max": 60
-        }
-      ]
-    },
-    "video_player": {
-      "id": "video_player",
-      "name": "Video Player",
-      "category": "media",
-      "icon": "🎬",
-      "color": "#9C27B0",
-      "inputs": {
-        "min": 1,
-        "max": 1,
-        "labels": ["trigger"]
-      },
-      "outputs": {
-        "min": 3,
-        "max": 3,
-        "labels": ["completed", "error", "skipped"],
-        "mode": "fixed"
-      },
-      "properties": [
-        {
-          "key": "videoFile",
-          "label": "Video File",
-          "type": "select_database",
-          "propertyType": "media_video",
-          "query": "SELECT id, title, video_url FROM videos WHERE status = 'active'",
-          "valueField": "id",
-          "labelField": "title",
-          "previewField": "video_url",
-          "placeholder": "Select video...",
-          "searchable": true,
-          "searchPlaceholder": "Search videos..."
-        },
-        {
-          "key": "autoplay",
-          "label": "Autoplay",
-          "type": "boolean",
-          "default": true
-        }
-      ]
-    },
-    "text_to_speech": {
-      "id": "text_to_speech",
-      "name": "Text to Speech",
-      "category": "ai",
-      "icon": "💬",
-      "color": "#2196F3",
-      "inputs": {
-        "min": 1,
-        "max": 1,
-        "labels": ["input"]
-      },
-      "outputs": {
-        "min": 2,
-        "max": 2,
-        "labels": ["success", "error"],
-        "mode": "fixed"
-      },
-      "properties": [
-        {
-          "key": "text",
-          "label": "Text",
-          "type": "textarea",
-          "placeholder": "Enter text to speak...",
-          "required": true,
-          "showPredefinedVariables": true
-        },
-        {
-          "key": "voice",
-          "label": "Voice",
-          "type": "select",
-          "options": ["male", "female", "neutral"],
-          "default": "neutral"
-        },
-        {
-          "key": "speed",
-          "label": "Speed",
-          "type": "number",
-          "default": 1.0,
-          "min": 0.5,
-          "max": 2.0,
-          "step": 0.1
-        }
-      ]
-    },
-    "if_else": {
-      "id": "if_else",
-      "name": "If/Else Condition",
-      "category": "logic",
-      "icon": "🔀",
-      "color": "#FF9800",
-      "inputs": {
-        "min": 1,
-        "max": 1,
-        "labels": ["input"]
-      },
-      "outputs": {
-        "min": 2,
-        "max": 2,
-        "labels": ["true", "false"],
-        "mode": "fixed"
-      },
-      "properties": [
-        {
-          "key": "condition",
-          "label": "Condition",
-          "type": "textarea",
-          "placeholder": "e.g., value > 100",
-          "required": true,
-          "showPredefinedVariables": true
-        }
-      ]
-    },
-    "http_request": {
-      "id": "http_request",
-      "name": "HTTP Request",
-      "category": "api",
-      "icon": "🌐",
-      "color": "#9C27B0",
-      "inputs": {
-        "min": 1,
-        "max": 1,
-        "labels": ["trigger"]
-      },
-      "outputs": {
-        "min": 2,
-        "max": 2,
-        "labels": ["success", "error"],
-        "mode": "fixed"
-      },
-      "properties": [
-        {
-          "key": "method",
-          "label": "Method",
-          "type": "select",
-          "options": ["GET", "POST", "PUT", "DELETE"],
-          "default": "GET"
-        },
-        {
-          "key": "url",
-          "label": "URL",
-          "type": "text",
-          "placeholder": "https://api.example.com/endpoint",
-          "required": true,
-          "showPredefinedVariables": true
-        },
-        {
-          "key": "body",
-          "label": "Body",
-          "type": "textarea",
-          "placeholder": "Request body (for POST/PUT)",
-          "showPredefinedVariables": true
-        }
-      ]
-    },
-    "start": {
-      "id": "start",
+    "app_start": {
+      "id": "app_start",
       "name": "Start",
-      "category": "control",
+      "category": "intelliflow_globals",
       "icon": "▶️",
-      "color": "#00BCD4",
-      "inputs": {
-        "min": 0,
-        "max": 0,
-        "labels": []
-      },
-      "outputs": {
-        "min": 1,
-        "max": 1,
-        "labels": ["start"],
-        "mode": "fixed"
-      },
-      "properties": []
+      "color": "#4CAF50",
+      "inputs": {"min": 0, "max": 0, "labels": []},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "start_label", "label": "Label", "type": "text", "placeholder": "START", "required": true},
+        {"key": "start_autostart", "label": "Auto Start", "type": "select", "options": [{"value": "yes", "label": "Yes"}, {"value": "no", "label": "No"}], "default": "yes", "description": "For Chat Only"},
+        {"key": "start_inactivtity_timeout", "label": "Inactivity Timeout (secs)", "type": "number", "default": 300, "min": 0, "max": 3600},
+        {"key": "start_custom_ivr", "label": "Call Intelliflow", "type": "select_database", "query": "SELECT id, ivr as ivr_name FROM yovo_tbl_ivrs WHERE is_deleted = 0", "valueField": "id", "labelField": "ivr_name", "placeholder": "Select IntelliFlow", "description": "On every message"}
+      ]
     },
-    "end": {
-      "id": "end",
+    "app_end": {
+      "id": "app_end",
       "name": "End",
-      "category": "control",
+      "category": "intelliflow_globals",
       "icon": "⏹️",
       "color": "#F44336",
-      "inputs": {
-        "min": 1,
-        "max": 10,
-        "labels": ["input"]
-      },
-      "outputs": {
-        "min": 0,
-        "max": 0,
-        "labels": []
-      },
+      "inputs": {"min": 1, "max": -1, "labels": ["input"]},
+      "outputs": {"min": 0, "max": 0, "labels": []},
       "properties": [
-        {
-          "key": "message",
-          "label": "End Message",
-          "type": "text",
-          "placeholder": "Flow completed"
-        }
+        {"key": "end_label", "label": "Label", "type": "text", "placeholder": "END", "required": true}
       ]
     },
-    "merge": {
-      "id": "merge",
-      "name": "Merge",
-      "category": "logic",
-      "icon": "🔗",
-      "color": "#673AB7",
-      "inputs": {
-        "min": 2,
-        "max": -1,
-        "labels": ["input"]
-      },
-      "outputs": {
-        "min": 1,
-        "max": 1,
-        "labels": ["merged"],
-        "mode": "fixed"
-      },
+    "app_answer": {
+      "id": "app_answer",
+      "name": "Answer",
+      "category": "intelliflow_globals",
+      "icon": "📞",
+      "color": "#2196F3",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
       "properties": [
-        {
-          "key": "mergeStrategy",
-          "label": "Merge Strategy",
-          "type": "select",
-          "options": ["wait_all", "first_complete", "last_complete"],
-          "default": "wait_all"
-        }
+        {"key": "answer_label", "label": "Label", "type": "text", "placeholder": "ANSWER", "required": true},
+        {"key": "answer_timeout", "label": "Timeout", "type": "number", "default": 5, "min": 1, "max": 60}
+      ]
+    },
+    "app_hangup": {
+      "id": "app_hangup",
+      "name": "Hangup",
+      "category": "intelliflow_globals",
+      "icon": "📴",
+      "color": "#F44336",
+      "inputs": {"min": 1, "max": -1, "labels": ["input"]},
+      "outputs": {"min": 0, "max": 0, "labels": []},
+      "properties": [
+        {"key": "hangup_label", "label": "Label", "type": "text", "placeholder": "HANG UP", "required": true}
+      ]
+    },
+    "app_dial_inboundroute": {
+      "id": "app_dial_inboundroute",
+      "name": "Application Dial",
+      "category": "call_control",
+      "icon": "📲",
+      "color": "#9C27B0",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 4, "max": 4, "mode": "fixed", "labels": ["answered", "no_answer", "busy", "failed"]},
+      "properties": [
+        {"key": "ir_dial_label", "label": "Label", "type": "text", "placeholder": "Application Dial", "required": true},
+        {"key": "ir_dial_extension", "label": "Application", "type": "select_database", "query": "SELECT name, CONCAT(name, ' | ', did) as display_name FROM yovo_tbl_route_inbound where type = 'rt-yovo-cc", "valueField": "name", "labelField": "display_name", "placeholder": "Select Application", "required": true},
+        {"key": "ir_dial_timeout", "label": "Timeout", "type": "number", "default": 30, "min": 1, "max": 300}
+      ]
+    },
+    "app_dial_internal": {
+      "id": "app_dial_internal",
+      "name": "Internal Dial",
+      "category": "call_control",
+      "icon": "📞",
+      "color": "#673AB7",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 4, "max": 4, "mode": "fixed", "labels": ["answered", "no_answer", "busy", "failed"]},
+      "properties": [
+        {"key": "i_dial_label", "label": "Label", "type": "text", "placeholder": "INTERNAL DIAL", "required": true},
+        {"key": "i_dial_extension", "label": "Extension", "type": "select_database", "query": "SELECT name, CONCAT(name, ' ', extension_no) as display_name FROM yovo_tbl_sippeers WHERE category != 'trunk'", "valueField": "name", "labelField": "display_name", "placeholder": "Select Extension", "required": true},
+        {"key": "i_dial_timeout", "label": "Timeout", "type": "number", "default": 30, "min": 1, "max": 300},
+        {"key": "i_dial_options", "label": "Options", "type": "text", "placeholder": "Dial options"},
+        {"key": "i_dial_url", "label": "URL", "type": "text", "placeholder": "Callback URL"}
+      ]
+    },
+    "app_dial_external": {
+      "id": "app_dial_external",
+      "name": "External Dial",
+      "category": "call_control",
+      "icon": "📱",
+      "color": "#E91E63",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 4, "max": 4, "mode": "fixed", "labels": ["answered", "no_answer", "busy", "failed"]},
+      "properties": [
+        {"key": "e_dial_label", "label": "Label", "type": "text", "placeholder": "EXTERNAL DIAL", "required": true},
+        {"key": "e_dial_number", "label": "Phone Number", "type": "text", "placeholder": "Enter phone number or variable", "showPredefinedVariables": true, "required": true},
+        {"key": "e_dial_callerid", "label": "Caller ID", "type": "text", "placeholder": "Outbound caller ID", "showPredefinedVariables": true},
+        {"key": "e_dial_timeout", "label": "Timeout", "type": "number", "default": 30, "min": 1, "max": 300},
+        {"key": "e_dial_trunk", "label": "Trunk", "type": "select_database", "query": "SELECT id, name FROM yovo_tbl_sippeers WHERE category = 'trunk'", "valueField": "id", "labelField": "name", "placeholder": "Select Trunk"}
+      ]
+    },
+    "app_taskrouter": {
+      "id": "app_taskrouter",
+      "name": "Task Router",
+      "category": "call_control",
+      "icon": "🔀",
+      "color": "#00BCD4",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 4, "max": 4, "mode": "fixed", "labels": ["answered", "no_answer", "timeout", "busy"]},
+      "properties": [
+        {"key": "taskrouter_label", "label": "Label", "type": "text", "placeholder": "TASKROUTER", "required": true},
+        {"key": "taskrouter_queue", "label": "Queue", "type": "select_database", "placeholder": "Select Queue", "searchable": true, "groups": [
+          {"label": "Queue Selection", "query": "SELECT name, name as display_name FROM queues WHERE deleted = 0", "valueField": "name", "labelField": "display_name"},
+          {"label": "User Queue Selection", "query": "SELECT CONCAT('*_', name) as value, name FROM yovo_tbl_sippeers WHERE category != 'trunk'", "valueField": "value", "labelField": "name"},
+          {"label": "Variables Selection", "query": "SELECT CONCAT('{', name, '}') as value, name FROM yovo_tbl_ivr_variables", "valueField": "value", "labelField": "name"}
+        ]},
+        {"key": "taskrouter_route_task", "label": "Route Task?", "type": "select", "options": [{"value": "0", "label": "No"}, {"value": "1", "label": "Yes"}], "default": "0"},
+        {"key": "taskrouter_priority", "label": "Priority", "type": "number", "default": 0, "min": 0, "max": 100},
+        {"key": "taskrouter_skills", "label": "Skills", "type": "select_database", "query": "SELECT id, name FROM yovo_tbl_workcodes WHERE deleted = 0", "valueField": "id", "labelField": "name", "placeholder": "Select Skills"},
+        {"key": "taskrouter_direct_agents", "label": "Direct Agent Hunting", "type": "select_database", "query": "SELECT username, agent_name FROM sippeers WHERE category != 'trunk'", "valueField": "username", "labelField": "agent_name", "placeholder": "Select Agents"},
+        {"key": "taskrouter_direct_agents_var", "label": "Direct Agent Hunting (Variable)", "type": "text", "placeholder": "Variable name", "showPredefinedVariables": true},
+        {"key": "taskrouter_timeout", "label": "Timeout", "type": "number", "default": 300, "min": 1, "max": 3600, "description": "For Voice Channel Only"}
+      ]
+    },
+    "app_directagent": {
+      "id": "app_directagent",
+      "name": "Direct Agent",
+      "category": "call_control",
+      "icon": "👤",
+      "color": "#FF5722",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 4, "max": 4, "mode": "fixed", "labels": ["answered", "no_answer", "timeout", "busy"]},
+      "properties": [
+        {"key": "directagent_label", "label": "Label", "type": "text", "placeholder": "DIRECTAGENT", "required": true},
+        {"key": "directagent_interval", "label": "Agent Lookup Interval", "type": "select", "options": [{"value": "5_MINUTE", "label": "5 Minutes"}, {"value": "15_MINUTE", "label": "15 Minutes"}, {"value": "30_MINUTE", "label": "30 Minutes"}, {"value": "1_HOUR", "label": "1 Hour"}, {"value": "2_HOUR", "label": "2 Hours"}, {"value": "3_HOUR", "label": "3 Hours"}, {"value": "6_HOUR", "label": "6 Hours"}, {"value": "12_HOUR", "label": "12 Hours"}, {"value": "1_DAY", "label": "1 Day"}, {"value": "1_WEEK", "label": "1 Week"}, {"value": "1_MONTH", "label": "1 Month"}], "placeholder": "Select Interval"},
+        {"key": "directagent_recording", "label": "Record Call", "type": "select", "options": [{"value": "no", "label": "No"}, {"value": "wav", "label": "WAV"}, {"value": "gsm", "label": "GSM"}], "default": "no"},
+        {"key": "directagent_recording_control", "label": "Recording Control", "type": "select", "options": [{"value": "0", "label": "No"}, {"value": "1", "label": "Yes"}], "default": "0"}
+      ]
+    },
+    "app_voicemail": {
+      "id": "app_voicemail",
+      "name": "Voicemail",
+      "category": "call_control",
+      "icon": "📩",
+      "color": "#795548",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "voicemail_label", "label": "Label", "type": "text", "placeholder": "VOICEMAIL", "required": true},
+        {"key": "voicemail_email", "label": "Email", "type": "text", "placeholder": "Send voicemail to email", "showPredefinedVariables": true},
+        {"key": "voicemail_maxlength", "label": "Max Length (seconds)", "type": "number", "default": 60, "min": 10, "max": 600}
+      ]
+    },
+    "app_callback": {
+      "id": "app_callback",
+      "name": "Callback",
+      "category": "call_control",
+      "icon": "🔙",
+      "color": "#607D8B",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "callback_label", "label": "Label", "type": "text", "placeholder": "CALLBACK", "required": true},
+        {"key": "callback_number", "label": "Callback Number", "type": "text", "placeholder": "Phone number or variable", "showPredefinedVariables": true},
+        {"key": "callback_queue", "label": "Queue", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_queues WHERE deleted = 0", "valueField": "name", "labelField": "display_name", "placeholder": "Select Queue"}
+      ]
+    },
+    "app_cancel_callback": {
+      "id": "app_cancel_callback",
+      "name": "Cancel Callback",
+      "category": "call_control",
+      "icon": "❌",
+      "color": "#F44336",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "cancel_callback_label", "label": "Label", "type": "text", "placeholder": "CANCEL CALLBACK", "required": true}
+      ]
+    },
+    "app_senddtmf": {
+      "id": "app_senddtmf",
+      "name": "Send DTMF",
+      "category": "call_control",
+      "icon": "🔢",
+      "color": "#9E9E9E",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "senddtmf_label", "label": "Label", "type": "text", "placeholder": "SENDDTMF", "required": true},
+        {"key": "senddtmf_digits", "label": "Digits", "type": "text", "placeholder": "DTMF digits to send", "showPredefinedVariables": true, "required": true}
+      ]
+    },
+    "app_calllist": {
+      "id": "app_calllist",
+      "name": "Call List",
+      "category": "call_control",
+      "icon": "📋",
+      "color": "#3F51B5",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "calllist_label", "label": "Label", "type": "text", "placeholder": "CALLLIST", "required": true},
+        {"key": "calllist_list", "label": "Dialing List", "type": "select_database", "query": "SELECT id, list_name FROM yovo_tbl_callbacks WHERE status = 1", "valueField": "id", "labelField": "list_name", "placeholder": "Select List"}
+      ]
+    },
+    "app_livebot": {
+      "id": "app_livebot",
+      "name": "Live Bot",
+      "category": "call_control",
+      "icon": "🤖",
+      "color": "#009688",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "hangup"]},
+      "properties": [
+        {"key": "livebot_label", "label": "Label", "type": "text", "placeholder": "LIVE BOT", "required": true},
+        {"key": "livebot_bot", "label": "Bot", "type": "select_database", "query": "SELECT id, botName FROM yovo_tbl_bia_bots", "valueField": "id", "labelField": "botName", "placeholder": "Select Bot"},
+        {"key": "livebot_assistant", "label": "Assistant Prompt", "type": "textarea", "placeholder": "Enter assistant prompt"}
+      ]
+    },
+    "app_livebot_tts": {
+      "id": "app_livebot_tts",
+      "name": "Live TTS Bot",
+      "category": "call_control",
+      "icon": "🎙️",
+      "color": "#00BCD4",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "hangup"]},
+      "properties": [
+        {"key": "livebot_tts_label", "label": "Label", "type": "text", "placeholder": "LIVE TTS BOT", "required": true},
+        {"key": "livebot_tts_bot", "label": "Bot", "type": "select_database", "query": "SELECT id, botName FROM yovo_tbl_bia_bots", "valueField": "id", "labelField": "botName", "placeholder": "Select Bot"},
+        {"key": "livebot_tts_language", "label": "Language", "type": "select", "options": [{"value": "en-US", "label": "English (US)"}, {"value": "en-GB", "label": "English (UK)"}, {"value": "ur-PK", "label": "Urdu"}, {"value": "ar-SA", "label": "Arabic"}], "default": "en-US"}
+      ]
+    },
+    "app_playback": {
+      "id": "app_playback",
+      "name": "Playback",
+      "category": "playback",
+      "icon": "🔊",
+      "color": "#4CAF50",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "playback_label", "label": "Label", "type": "text", "placeholder": "PLAYBACK", "required": true},
+        {"key": "playback_audio", "label": "Audio File", "type": "select_database", "placeholder": "Select File", "searchable": true, "groups": [
+          {"label": "Audio Files", "query": "SELECT id, filename, CONCAT('https://iman.contegris.com/intellicon/', filepath, '.', extension) AS file_url, filepath FROM yovo_tbl_audio_files", "valueField": "filepath", "labelField": "filename", "previewField": "file_url", "propertyType": "media_audio"},
+          {"label": "Variables Selection", "query": "SELECT CONCAT('{', name, '}') as value, name FROM yovo_tbl_ivr_variables", "valueField": "value", "labelField": "name"}
+        ]},
+        {"key": "playback_audio_volume", "label": "Volume", "type": "select", "options": [{"value": "increment", "label": "Increment"}, {"value": "decrement", "label": "Decrement"}], "default": "increment"},
+        {"key": "playback_audio_volume_value", "label": "Volume Value", "type": "select", "options": [{"value": "0", "label": "0"}, {"value": "1", "label": "1"}, {"value": "2", "label": "2"}, {"value": "3", "label": "3"}, {"value": "4", "label": "4"}, {"value": "5", "label": "5"}, {"value": "6", "label": "6"}, {"value": "7", "label": "7"}, {"value": "8", "label": "8"}, {"value": "9", "label": "9"}, {"value": "10", "label": "10"}], "default": "0"}
+      ]
+    },
+    "app_background": {
+      "id": "app_background",
+      "name": "Background",
+      "category": "playback",
+      "icon": "🎵",
+      "color": "#8BC34A",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 12, "max": 12, "mode": "fixed", "labels": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "#"]},
+      "properties": [
+        {"key": "background_label", "label": "Label", "type": "text", "placeholder": "BACKGROUND", "required": true},
+        {"key": "background_audio", "label": "Audio File", "type": "select_database", "query": "SELECT id, filename, CONCAT('https://iman.contegris.com/intellicon/', filepath, '.', extension) AS file_url, filepath FROM yovo_tbl_audio_files;", "valueField": "filepath", "previewField": "file_url", "labelField": "filename", "placeholder": "Select File", "searchable": true},
+        {"key": "background_timeout", "label": "Timeout", "type": "number", "default": 5, "min": 1, "max": 60},
+        {"key": "background_input", "label": "Input Digits", "type": "number", "default": 1, "min": 1, "max": 20}
+      ]
+    },
+    "app_ivr": {
+      "id": "app_ivr",
+      "name": "IVR",
+      "category": "playback",
+      "icon": "📞",
+      "color": "#2196F3",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 14, "max": 14, "mode": "fixed", "labels": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "#", "timeout", "invalid"]},
+      "properties": [
+        {"key": "ivr_label", "label": "Label", "type": "text", "placeholder": "IVR", "required": true},
+        {"key": "ivr_audio", "label": "Audio File", "type": "select_database", "placeholder": "Select File", "searchable": true, "groups": [
+          {"label": "Audio Files", "query": "SELECT id, filename, CONCAT('https://iman.contegris.com/intellicon/', filepath, '.', extension) AS file_url, filepath FROM yovo_tbl_audio_files", "previewField": "file_url", "valueField": "filepath", "labelField": "filename"},
+          {"label": "Variables Selection", "query": "SELECT CONCAT('{', name, '}') as value, name FROM variables WHERE status = 1", "valueField": "value", "labelField": "name"}
+        ]},
+        {"key": "ivr_timeout", "label": "Timeout", "type": "number", "default": 5, "min": 1, "max": 60},
+        {"key": "ivr_input", "label": "Input Digits", "type": "number", "default": 1, "min": 1, "max": 20},
+        {"key": "ivr_retry", "label": "Retry", "type": "number", "default": 1, "min": 0, "max": 10},
+        {"key": "ivr_invalid_audio", "label": "Invalid Audio File", "type": "select_database", "query": "SELECT id, filename, CONCAT('https://iman.contegris.com/intellicon/', filepath, '.', extension) AS file_url, filepath FROM yovo_tbl_audio_files", "previewField": "file_url", "valueField": "filepath", "labelField": "filename", "placeholder": "Select File", "searchable": true},
+        {"key": "ivr_timeout_audio", "label": "Timeout Audio File", "type": "select_database", "query": "SELECT id, filename, CONCAT('https://iman.contegris.com/intellicon/', filepath, '.', extension) AS file_url, filepath FROM yovo_tbl_audio_files", "previewField": "file_url", "valueField": "filepath", "labelField": "filename", "placeholder": "Select File", "searchable": true},
+        {"key": "ivr_repeat", "label": "Repeat IVR Input", "type": "text", "placeholder": "e.g., 9"},
+        {"key": "ivr_pbx", "label": "PBX Enabled", "type": "select", "options": [{"value": "", "label": "False"}, {"value": "1", "label": "True"}], "default": ""},
+        {"key": "ivr_volume", "label": "Volume", "type": "select", "options": [{"value": "increment", "label": "Increment"}, {"value": "decrement", "label": "Decrement"}], "default": "increment"},
+        {"key": "ivr_volume_value", "label": "Volume Value", "type": "select", "options": [{"value": "0", "label": "0"}, {"value": "1", "label": "1"}, {"value": "2", "label": "2"}, {"value": "3", "label": "3"}, {"value": "4", "label": "4"}, {"value": "5", "label": "5"}, {"value": "6", "label": "6"}, {"value": "7", "label": "7"}, {"value": "8", "label": "8"}, {"value": "9", "label": "9"}, {"value": "10", "label": "10"}], "default": "0"},
+        {"key": "ivr_variable", "label": "IVR Variables", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_tts_ivr": {
+      "id": "app_tts_ivr",
+      "name": "TTS IVR",
+      "category": "playback",
+      "icon": "🎤",
+      "color": "#3F51B5",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 14, "max": 14, "mode": "fixed", "labels": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "#", "timeout", "invalid"]},
+      "properties": [
+        {"key": "tts_ivr_label", "label": "Label", "type": "text", "placeholder": "TEXT TO SPEECH IVR", "required": true},
+        {"key": "tts_ivr_text", "label": "Text", "type": "textarea", "placeholder": "Enter text to speak...", "showPredefinedVariables": true, "required": true},
+        {"key": "tts_ivr_input", "label": "Input Digits", "type": "number", "default": 5, "min": 1, "max": 20},
+        {"key": "tts_ivr_retry", "label": "Retry", "type": "number", "default": 1, "min": 0, "max": 10},
+        {"key": "tts_ivr_language", "label": "Language", "type": "select", "options": [{"value": "en-US", "label": "English (US)"}, {"value": "en-GB", "label": "English (UK)"}, {"value": "ur-PK", "label": "Urdu"}, {"value": "ar-SA", "label": "Arabic"}], "default": "en-US"}
+      ]
+    },
+    "app_tts_playback": {
+      "id": "app_tts_playback",
+      "name": "TTS Playback",
+      "category": "playback",
+      "icon": "🗣️",
+      "color": "#00BCD4",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "tts_playback_label", "label": "Label", "type": "text", "placeholder": "TEXT TO SPEECH PLAYBACK", "required": true},
+        {"key": "tts_playback_text", "label": "Text", "type": "textarea", "placeholder": "Enter text to speak...", "showPredefinedVariables": true, "required": true},
+        {"key": "tts_playback_language", "label": "Language", "type": "select", "options": [{"value": "en-US", "label": "English (US)"}, {"value": "en-GB", "label": "English (UK)"}, {"value": "ur-PK", "label": "Urdu"}, {"value": "ar-SA", "label": "Arabic"}], "default": "en-US"}
+      ]
+    },
+    "app_get_digits": {
+      "id": "app_get_digits",
+      "name": "Get Digits",
+      "category": "playback",
+      "icon": "🔢",
+      "color": "#FF9800",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "timeout"]},
+      "properties": [
+        {"key": "getdigit_label", "label": "Label", "type": "text", "placeholder": "GET DIGITS", "required": true},
+        {"key": "getdigit_response", "label": "Timeout", "type": "number", "default": 5, "min": 1, "max": 60},
+        {"key": "getdigit_min", "label": "Min Digits", "type": "number", "default": 1, "min": 1, "max": 50},
+        {"key": "getdigit_max", "label": "Max Digits", "type": "number", "default": 10, "min": 1, "max": 50},
+        {"key": "getdigit_retry", "label": "Retry", "type": "number", "default": 1, "min": 0, "max": 10},
+        {"key": "getdigit_variable", "label": "Store in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_say_digits": {
+      "id": "app_say_digits",
+      "name": "Say Digits",
+      "category": "playback",
+      "icon": "🔢",
+      "color": "#9C27B0",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "saydigit_label", "label": "Label", "type": "text", "placeholder": "SAY DIGITS", "required": true},
+        {"key": "saydigit_digits", "label": "Digits", "type": "text", "placeholder": "Digits to say", "showPredefinedVariables": true, "required": true},
+        {"key": "saydigit_escape", "label": "Escape Key", "type": "text", "default": "#", "placeholder": "#"}
+      ]
+    },
+    "app_say_date": {
+      "id": "app_say_date",
+      "name": "Say Date",
+      "category": "playback",
+      "icon": "📅",
+      "color": "#673AB7",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "saydate_label", "label": "Label", "type": "text", "placeholder": "SAY DATE", "required": true},
+        {"key": "saydate_date", "label": "Date", "type": "text", "placeholder": "Date to say", "showPredefinedVariables": true, "required": true},
+        {"key": "saydate_escape", "label": "Escape Key", "type": "text", "default": "#", "placeholder": "#"}
+      ]
+    },
+    "app_say_alpha": {
+      "id": "app_say_alpha",
+      "name": "Say Alpha",
+      "category": "playback",
+      "icon": "🔤",
+      "color": "#E91E63",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "sayalpha_label", "label": "Label", "type": "text", "placeholder": "SAY ALPHA", "required": true},
+        {"key": "sayalpha_text", "label": "Text", "type": "text", "placeholder": "Text to say", "showPredefinedVariables": true, "required": true},
+        {"key": "sayalpha_escape", "label": "Escape Key", "type": "text", "default": "#", "placeholder": "#"}
+      ]
+    },
+    "app_say_number": {
+      "id": "app_say_number",
+      "name": "Say Number",
+      "category": "playback",
+      "icon": "🔢",
+      "color": "#795548",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "saynumber_label", "label": "Label", "type": "text", "placeholder": "SAY NUMBER", "required": true},
+        {"key": "saynumber_number", "label": "Number", "type": "text", "placeholder": "Number to say", "showPredefinedVariables": true, "required": true},
+        {"key": "saynumber_escape", "label": "Escape Key", "type": "text", "default": "#", "placeholder": "#"}
+      ]
+    },
+    "app_say_phonetics": {
+      "id": "app_say_phonetics",
+      "name": "Say Phonetics",
+      "category": "playback",
+      "icon": "🅰️",
+      "color": "#607D8B",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "sayphontics_label", "label": "Label", "type": "text", "placeholder": "SAY PHONETICS", "required": true},
+        {"key": "sayphontics_text", "label": "Text", "type": "text", "placeholder": "Text to say phonetically", "showPredefinedVariables": true, "required": true},
+        {"key": "sayphontics_escape", "label": "Escape Key", "type": "text", "default": "#", "placeholder": "#"}
+      ]
+    },
+    "app_playback_currency": {
+      "id": "app_playback_currency",
+      "name": "Playback Currency",
+      "category": "playback",
+      "icon": "💰",
+      "color": "#4CAF50",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "playback_currency_label", "label": "Label", "type": "text", "placeholder": "PLAYBACKCURRENCY", "required": true},
+        {"key": "playback_currency_amount", "label": "Amount", "type": "text", "placeholder": "Amount to say", "showPredefinedVariables": true, "required": true},
+        {"key": "playback_currency_type", "label": "Currency", "type": "select", "options": [{"value": "USD", "label": "USD"}, {"value": "PKR", "label": "PKR"}, {"value": "EUR", "label": "EUR"}, {"value": "GBP", "label": "GBP"}], "default": "USD"}
+      ]
+    },
+    "app_record": {
+      "id": "app_record",
+      "name": "Recording",
+      "category": "playback",
+      "icon": "🎙️",
+      "color": "#F44336",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "record_label", "label": "Label", "type": "text", "placeholder": "RECORDING", "required": true},
+        {"key": "record_filename", "label": "Filename", "type": "text", "placeholder": "Recording filename"},
+        {"key": "record_escape", "label": "Escape Key", "type": "text", "default": "#", "placeholder": "#"},
+        {"key": "record_timeout", "label": "Timeout", "type": "number", "default": -1, "min": -1, "max": 300, "description": "-1 for unlimited"}
+      ]
+    },
+    "app_speechtotext": {
+      "id": "app_speechtotext",
+      "name": "Speech to Text",
+      "category": "playback",
+      "icon": "🎤",
+      "color": "#9C27B0",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "speechtotext_label", "label": "Label", "type": "text", "placeholder": "SPEECH TO TEXT", "required": true},
+        {"key": "speechtotext_timeout", "label": "Timeout", "type": "number", "default": 5, "min": 1, "max": 60},
+        {"key": "speechtotext_language", "label": "Language", "type": "select", "options": [{"value": "en-US", "label": "English (US)"}, {"value": "en-GB", "label": "English (UK)"}, {"value": "ur-PK", "label": "Urdu"}, {"value": "ar-SA", "label": "Arabic"}], "default": "en-US"},
+        {"key": "speechtotext_variable", "label": "Store in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_translatetext": {
+      "id": "app_translatetext",
+      "name": "Translate Text",
+      "category": "playback",
+      "icon": "🌐",
+      "color": "#00BCD4",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "translatetext_label", "label": "Label", "type": "text", "placeholder": "TRANSLATE TEXT", "required": true},
+        {"key": "translatetext_text", "label": "Text", "type": "textarea", "placeholder": "Text to translate", "showPredefinedVariables": true, "required": true},
+        {"key": "translatetext_from", "label": "From Language", "type": "select", "options": [{"value": "en", "label": "English"}, {"value": "ur", "label": "Urdu"}, {"value": "ar", "label": "Arabic"}], "default": "en"},
+        {"key": "translatetext_to", "label": "To Language", "type": "select", "options": [{"value": "en", "label": "English"}, {"value": "ur", "label": "Urdu"}, {"value": "ar", "label": "Arabic"}], "default": "ur"},
+        {"key": "translatetext_variable", "label": "Store in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_speechtotextivr": {
+      "id": "app_speechtotextivr",
+      "name": "Speech IVR",
+      "category": "playback",
+      "icon": "🎤",
+      "color": "#3F51B5",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "timeout"]},
+      "properties": [
+        {"key": "speechtotextivr_label", "label": "Label", "type": "text", "placeholder": "SPEECH IVR", "required": true},
+        {"key": "speechtotextivr_timeout", "label": "Timeout", "type": "number", "default": 5, "min": 1, "max": 60},
+        {"key": "speechtotextivr_language", "label": "Language", "type": "select", "options": [{"value": "en-US", "label": "English (US)"}, {"value": "en-GB", "label": "English (UK)"}, {"value": "ur-PK", "label": "Urdu"}, {"value": "ar-SA", "label": "Arabic"}], "default": "en-US"},
+        {"key": "speechtotextivr_variable", "label": "Store in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_router": {
+      "id": "app_router",
+      "name": "Router",
+      "category": "functions",
+      "icon": "🔀",
+      "color": "#9C27B0",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": -1, "mode": "dynamic", "labels": ["default"]},
+      "properties": [
+        {"key": "router_label", "label": "Label", "type": "text", "placeholder": "ROUTER", "required": true},
+        {"key": "router_key", "label": "Key to Route on", "type": "text", "placeholder": "Enter key value", "showPredefinedVariables": true},
+        {"key": "router_variable", "label": "From Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_gotoif": {
+      "id": "app_gotoif",
+      "name": "GotoIf",
+      "category": "functions",
+      "icon": "❓",
+      "color": "#FF9800",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["true", "false"]},
+      "properties": [
+        {"key": "gotoif_label", "label": "Label", "type": "text", "placeholder": "GOTO IF", "required": true},
+        {"key": "gotoif_condition_left", "label": "Left", "type": "text", "placeholder": "e.g., {{variable_name}}", "showPredefinedVariables": true, "required": true},
+        {"key": "gotoif_operator", "label": "Condition", "type": "select", "options": [{"value": "=", "label": "Equals"}, {"value": "!=", "label": "Not Equals"}, {"value": ">", "label": "Greater than"}, {"value": "<", "label": "Less than"}, {"value": ">=", "label": "Greater than or Equals"}, {"value": "<=", "label": "Less than or Equals"}, {"value": "contains", "label": "Contains (within string)"}, {"value": "isset", "label": "Is Set? (Array Operation)"}, {"value": "empty", "label": "Is Empty? (Array Operation)"}, {"value": "date_greater", "label": "Date Comparison (Greater Than)"}, {"value": "date_less", "label": "Date Comparison (Less Than)"}], "default": "=", "required": true},
+        {"key": "gotoif_condition_right", "label": "Right", "type": "text", "placeholder": "e.g., 100", "showPredefinedVariables": true},
+        {"key": "gotoif_condition", "label": "For Call channel only", "type": "textarea", "placeholder": "Advanced condition expression"}
+      ]
+    },
+    "app_split": {
+      "id": "app_split",
+      "name": "Split",
+      "category": "functions",
+      "icon": "✂️",
+      "color": "#607D8B",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "split_label", "label": "Label", "type": "text", "placeholder": "SPLIT", "required": true},
+        {"key": "split_variable", "label": "Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable", "required": true},
+        {"key": "split_delimiter", "label": "Delimiter", "type": "text", "default": ",", "placeholder": ","},
+        {"key": "split_index", "label": "Index", "type": "number", "default": 0, "min": 0, "max": 100},
+        {"key": "split_output_variable", "label": "Store in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_normalize": {
+      "id": "app_normalize",
+      "name": "Normalize",
+      "category": "functions",
+      "icon": "⚡",
+      "color": "#FF5722",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "normalize_label", "label": "Label", "type": "text", "placeholder": "NORMALIZE", "required": true},
+        {"key": "normalize_variable", "label": "Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable", "required": true},
+        {"key": "normalize_format", "label": "Format", "type": "select", "options": [{"value": "phone", "label": "Phone Number"}, {"value": "email", "label": "Email"}, {"value": "uppercase", "label": "Uppercase"}, {"value": "lowercase", "label": "Lowercase"}, {"value": "trim", "label": "Trim"}], "default": "phone"}
+      ]
+    },
+    "app_get_var": {
+      "id": "app_get_var",
+      "name": "Get Variable",
+      "category": "functions",
+      "icon": "📋",
+      "color": "#2196F3",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["found", "not_found"]},
+      "properties": [
+        {"key": "get_var_label", "label": "Label", "type": "text", "placeholder": "GET VARIABLE", "required": true},
+        {"key": "get_var_variable", "label": "Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable", "required": true}
+      ]
+    },
+    "app_set_var": {
+      "id": "app_set_var",
+      "name": "Set Variable",
+      "category": "functions",
+      "icon": "📝",
+      "color": "#4CAF50",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "set_var_label", "label": "Label", "type": "text", "placeholder": "SET VARIABLE", "required": true},
+        {"key": "set_var_variable", "label": "Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable", "required": true},
+        {"key": "set_var_value", "label": "Value", "type": "text", "placeholder": "Enter value", "showPredefinedVariables": true, "required": true}
+      ]
+    },
+    "app_set_var_key": {
+      "id": "app_set_var_key",
+      "name": "Set Variable Key",
+      "category": "functions",
+      "icon": "🔑",
+      "color": "#009688",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "set_var_key_label", "label": "Label", "type": "text", "placeholder": "SET VARIABLE KEY", "required": true},
+        {"key": "set_var_key_variable", "label": "Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable", "required": true},
+        {"key": "set_var_key_key", "label": "Key", "type": "text", "placeholder": "Enter key", "required": true},
+        {"key": "set_var_key_value", "label": "Value", "type": "text", "placeholder": "Enter value", "showPredefinedVariables": true, "required": true}
+      ]
+    },
+    "app_queue_log": {
+      "id": "app_queue_log",
+      "name": "Queue Log",
+      "category": "functions",
+      "icon": "📝",
+      "color": "#795548",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "queuelog_label", "label": "Label", "type": "text", "placeholder": "QUEUE LOG", "required": true},
+        {"key": "queuelog_message", "label": "Message", "type": "text", "placeholder": "Log message", "showPredefinedVariables": true}
+      ]
+    },
+    "app_user_event": {
+      "id": "app_user_event",
+      "name": "User Event",
+      "category": "functions",
+      "icon": "📢",
+      "color": "#E91E63",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "userevent_label", "label": "Label", "type": "text", "placeholder": "USER EVENT", "required": true},
+        {"key": "userevent_message", "label": "Message", "type": "text", "placeholder": "Event message", "showPredefinedVariables": true, "description": "For iManager"}
+      ]
+    },
+    "app_wait": {
+      "id": "app_wait",
+      "name": "Wait",
+      "category": "functions",
+      "icon": "⏱️",
+      "color": "#607D8B",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "wait_label", "label": "Label", "type": "text", "placeholder": "WAIT", "required": true},
+        {"key": "wait_time", "label": "Wait Time (seconds)", "type": "number", "default": 1, "min": 1, "max": 300, "required": true}
+      ]
+    },
+    "app_set_counter": {
+      "id": "app_set_counter",
+      "name": "Set Counter",
+      "category": "functions",
+      "icon": "➕",
+      "color": "#00BCD4",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "set_counter_label", "label": "Label", "type": "text", "placeholder": "SET COUNTER", "required": true},
+        {"key": "set_counter_variable", "label": "Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable", "required": true},
+        {"key": "set_counter_operation", "label": "Operation", "type": "select", "options": [{"value": "increment", "label": "Increment"}, {"value": "decrement", "label": "Decrement"}, {"value": "reset", "label": "Reset"}], "default": "increment"},
+        {"key": "set_counter_value", "label": "Value", "type": "number", "default": 1, "min": 0, "max": 1000}
+      ]
+    },
+    "app_keyword_parser": {
+      "id": "app_keyword_parser",
+      "name": "Keyword Parser",
+      "category": "functions",
+      "icon": "#️⃣",
+      "color": "#673AB7",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["matched", "not_matched"]},
+      "properties": [
+        {"key": "keyword_parser_label", "label": "Label", "type": "text", "placeholder": "KEYWORD Parser", "required": true},
+        {"key": "keyword_parser_text", "label": "Text", "type": "text", "placeholder": "Text to parse", "showPredefinedVariables": true, "required": true},
+        {"key": "keyword_parser_type", "label": "Use REGEXP", "type": "select", "options": [{"value": "no", "label": "Do Not Use REGEXP"}, {"value": "yes", "label": "Use REGEXP"}], "default": "no"},
+        {"key": "keyword_parser_list", "label": "Keyword List", "type": "select_database", "query": "SELECT id, list_name FROM wblists WHERE status = 1", "valueField": "id", "labelField": "list_name", "placeholder": "Select List"}
+      ]
+    },
+    "app_goto": {
+      "id": "app_goto",
+      "name": "Goto",
+      "category": "applications",
+      "icon": "➡️",
+      "color": "#9C27B0",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "goto_label", "label": "Label", "type": "text", "placeholder": "GOTO", "required": true},
+        {"key": "goto_target", "label": "Target", "type": "text", "placeholder": "Target block label", "required": true}
+      ]
+    },
+    "app_abandoncheck": {
+      "id": "app_abandoncheck",
+      "name": "Abandon Check",
+      "category": "applications",
+      "icon": "⚠️",
+      "color": "#FF5722",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["abandoned", "not_abandoned"]},
+      "properties": [
+        {"key": "abandoncheck_label", "label": "Label", "type": "text", "placeholder": "ABANDONCHECK", "required": true}
+      ]
+    },
+    "app_gotoiftime": {
+      "id": "app_gotoiftime",
+      "name": "GotoIfTime",
+      "category": "applications",
+      "icon": "🕐",
+      "color": "#FF9800",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["true", "false"]},
+      "properties": [
+        {"key": "gotoiftime_label", "label": "Label", "type": "text", "placeholder": "GOTO IF TIME", "required": true},
+        {"key": "gotoiftime_condition", "label": "Time Condition", "type": "select_database", "query": "SELECT id, name FROM timestamps WHERE status = 1", "valueField": "id", "labelField": "name", "placeholder": "Select Time Condition", "required": true}
+      ]
+    },
+    "app_gotoiftimemulti": {
+      "id": "app_gotoiftimemulti",
+      "name": "GotoIfTimeMulti",
+      "category": "applications",
+      "icon": "📆",
+      "color": "#FFC107",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["true", "false"]},
+      "properties": [
+        {"key": "gotoiftimemulti_label", "label": "Label", "type": "text", "placeholder": "GOTO IF TIME MULTI", "required": true},
+        {"key": "gotoiftimemulti_condition", "label": "Time Conditions", "type": "select_database", "query": "SELECT id, name FROM timestamps WHERE status = 1", "valueField": "id", "labelField": "name", "placeholder": "Select Time Conditions", "description": "Select multiple time conditions"}
+      ]
+    },
+    "app_gotoifbusinesshours": {
+      "id": "app_gotoifbusinesshours",
+      "name": "Business Hours",
+      "category": "applications",
+      "icon": "📅",
+      "color": "#4CAF50",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["true", "false"]},
+      "properties": [
+        {"key": "gotoifbusinesshours_label", "label": "Label", "type": "text", "placeholder": "BUSINESS HOURS", "required": true},
+        {"key": "gotoifbusinesshours_condition", "label": "Business Hours Profile", "type": "select_database", "query": "SELECT profile_name, profile_name as display_name FROM business_hours WHERE status = 1", "valueField": "profile_name", "labelField": "display_name", "placeholder": "Select Business Hours Profile", "required": true}
+      ]
+    },
+    "app_noop": {
+      "id": "app_noop",
+      "name": "NoOp",
+      "category": "applications",
+      "icon": "▶️",
+      "color": "#9E9E9E",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "noop_label", "label": "Label", "type": "text", "placeholder": "NOOP", "required": true},
+        {"key": "noop_text", "label": "Text", "type": "text", "placeholder": "NoOp text"}
+      ]
+    },
+    "app_wblist": {
+      "id": "app_wblist",
+      "name": "White/Black List",
+      "category": "applications",
+      "icon": "📋",
+      "color": "#607D8B",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["true", "false"]},
+      "properties": [
+        {"key": "wblist_label", "label": "Label", "type": "text", "placeholder": "WBLIST", "required": true},
+        {"key": "wblist_name", "label": "List Name", "type": "select_database", "query": "SELECT id, list_name FROM wblists WHERE status = 1", "valueField": "id", "labelField": "list_name", "placeholder": "Select List"},
+        {"key": "wblist_number", "label": "Number / Keyword", "type": "text", "placeholder": "Number or keyword to check", "showPredefinedVariables": true}
+      ]
+    },
+    "app_database": {
+      "id": "app_database",
+      "name": "Database",
+      "category": "applications",
+      "icon": "🗄️",
+      "color": "#795548",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "database_label", "label": "Label", "type": "text", "placeholder": "DATABASE", "required": true},
+        {"key": "database_query", "label": "Query", "type": "textarea", "placeholder": "SELECT * FROM table WHERE id = {{variable}}", "showPredefinedVariables": true, "required": true},
+        {"key": "database_variable", "label": "Store Result in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_workcode": {
+      "id": "app_workcode",
+      "name": "WorkCode",
+      "category": "applications",
+      "icon": "🏷️",
+      "color": "#3F51B5",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "workcode_label", "label": "Label", "type": "text", "placeholder": "WORKCODE", "required": true},
+        {"key": "workcode_code", "label": "Work Code", "type": "select_database", "query": "SELECT id, name FROM workcodes WHERE status = 1", "valueField": "id", "labelField": "name", "placeholder": "Select Work Code"}
+      ]
+    },
+    "app_comment": {
+      "id": "app_comment",
+      "name": "Comment",
+      "category": "applications",
+      "icon": "💬",
+      "color": "#9E9E9E",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "comment_label", "label": "Label", "type": "text", "placeholder": "COMMENT", "required": true},
+        {"key": "comment_text", "label": "Comment", "type": "textarea", "placeholder": "Enter comment"}
+      ]
+    },
+    "app_email": {
+      "id": "app_email",
+      "name": "Email",
+      "category": "applications",
+      "icon": "📧",
+      "color": "#E91E63",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "email_label", "label": "Label", "type": "text", "placeholder": "EMAIL", "required": true},
+        {"key": "email_to", "label": "To", "type": "text", "placeholder": "recipient@example.com", "showPredefinedVariables": true, "required": true},
+        {"key": "email_subject", "label": "Subject", "type": "text", "placeholder": "Email subject", "showPredefinedVariables": true, "required": true},
+        {"key": "email_body", "label": "Body", "type": "textarea", "placeholder": "Email body content", "showPredefinedVariables": true, "required": true}
+      ]
+    },
+    "app_sms": {
+      "id": "app_sms",
+      "name": "SMS",
+      "category": "applications",
+      "icon": "💬",
+      "color": "#00BCD4",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "sms_label", "label": "Label", "type": "text", "placeholder": "SMS", "required": true},
+        {"key": "sms_to", "label": "To", "type": "text", "placeholder": "Phone number", "showPredefinedVariables": true, "required": true},
+        {"key": "sms_message", "label": "Message", "type": "textarea", "placeholder": "SMS message content", "showPredefinedVariables": true, "required": true},
+        {"key": "sms_gateway", "label": "Gateway", "type": "select_database", "query": "SELECT id, name FROM sms_gateways WHERE status = 1", "valueField": "id", "labelField": "name", "placeholder": "Select Gateway"}
+      ]
+    },
+    "app_curl": {
+      "id": "app_curl",
+      "name": "HTTP Request",
+      "category": "applications",
+      "icon": "🌐",
+      "color": "#673AB7",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "curl_label", "label": "Label", "type": "text", "placeholder": "CURL", "required": true},
+        {"key": "curl_url", "label": "URL", "type": "text", "placeholder": "https://api.example.com/endpoint", "showPredefinedVariables": true, "required": true},
+        {"key": "curl_type", "label": "Request Type", "type": "select", "options": [{"value": "simple", "label": "REST"}, {"value": "soap", "label": "SOAP"}], "default": "simple"},
+        {"key": "curl_op_type", "label": "HTTP Method", "type": "select", "options": [{"value": "get", "label": "GET"}, {"value": "post", "label": "POST"}, {"value": "put", "label": "PUT"}, {"value": "delete", "label": "DELETE"}], "default": "get"},
+        {"key": "curl_json", "label": "Encode Query in JSON", "type": "select", "options": [{"value": "0", "label": "No"}, {"value": "1", "label": "Yes"}, {"value": "2", "label": "POST as is"}], "default": "0"},
+        {"key": "curl_result_json", "label": "Is Response JSON?", "type": "select", "options": [{"value": "0", "label": "No"}, {"value": "1", "label": "Yes"}], "default": "0"},
+        {"key": "curl_ssl", "label": "SSL Verify", "type": "select", "options": [{"value": "0", "label": "No"}, {"value": "1", "label": "Yes"}], "default": "0"},
+        {"key": "curl_request_timeout", "label": "Request Timeout (seconds)", "type": "number", "default": 60, "min": 1, "max": 300},
+        {"key": "curl_response", "label": "Data to POST", "type": "textarea", "placeholder": "Comma separated variables", "showPredefinedVariables": true},
+        {"key": "curl_extra_headers", "label": "Extra Headers", "type": "textarea", "placeholder": "Content-type:application/json, Authorization:Bearer TOKEN"},
+        {"key": "curl_variable", "label": "Store Response in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_ring": {
+      "id": "app_ring",
+      "name": "Ring Group",
+      "category": "applications",
+      "icon": "👥",
+      "color": "#009688",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 4, "max": 4, "mode": "fixed", "labels": ["answered", "no_answer", "timeout", "busy"]},
+      "properties": [
+        {"key": "ring_label", "label": "Label", "type": "text", "placeholder": "RING", "required": true},
+        {"key": "ring_group", "label": "Ring Group", "type": "select_database", "query": "SELECT id, name FROM ring_groups WHERE status = 1", "valueField": "id", "labelField": "name", "placeholder": "Select Ring Group"},
+        {"key": "ring_timeout", "label": "Timeout", "type": "number", "default": 30, "min": 1, "max": 300}
+      ]
+    },
+    "app_feedback": {
+      "id": "app_feedback",
+      "name": "Feedback",
+      "category": "applications",
+      "icon": "⭐",
+      "color": "#FFC107",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "timeout"]},
+      "properties": [
+        {"key": "feedback_label", "label": "Label", "type": "text", "placeholder": "FEEDBACK", "required": true},
+        {"key": "feedback_audio", "label": "Audio File", "type": "select_database", "query": "SELECT id, name, CONCAT('https://iman.contegris.com/intellicon/', audio_file) AS file_url, audio_file FROM yovo_tbl_feedbacks", "previewField": "file_url", "valueField": "filepath", "labelField": "name", "placeholder": "Select File"},
+        {"key": "feedback_variable", "label": "Store in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_intelliflow_route": {
+      "id": "app_intelliflow_route",
+      "name": "Intelliflow Route",
+      "category": "applications",
+      "icon": "🔗",
+      "color": "#3F51B5",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "intelliflow_route_label", "label": "Label", "type": "text", "placeholder": "Intelliflow Route", "required": true},
+        {"key": "intelliflow_route_intelliflow", "label": "Intelliflow", "type": "select_database", "query": "SELECT id, name as ivr_name FROM yovo_tbl_ivrs where is_deleted = 0", "valueField": "id", "labelField": "ivr_name", "placeholder": "Select Intelliflow", "required": true}
+      ]
+    },
+    "app_biabot": {
+      "id": "app_biabot",
+      "name": "BIA Bot",
+      "category": "applications",
+      "icon": "🤖",
+      "color": "#FF5722",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "biabot_label", "label": "Label", "type": "text", "placeholder": "BIA BOT", "required": true},
+        {"key": "biabot_bot", "label": "BIA Bot Responder", "type": "select_database", "query": "SELECT id, botName FROM bots WHERE status = 1", "valueField": "id", "labelField": "botName", "placeholder": "Select BOT", "required": true},
+        {"key": "biabot_assistant", "label": "BOT Prompt Assistant", "type": "text", "placeholder": "Assistant prompt"},
+        {"key": "biabot_question", "label": "Question from Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"},
+        {"key": "biabot_response", "label": "Store Response in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_aica": {
+      "id": "app_aica",
+      "name": "AICA",
+      "category": "applications",
+      "icon": "🚀",
+      "color": "#9C27B0",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "aica_label", "label": "Label", "type": "text", "placeholder": "AICA", "required": true},
+        {"key": "aica_prompt", "label": "Prompt", "type": "textarea", "placeholder": "Enter AICA prompt", "showPredefinedVariables": true},
+        {"key": "aica_variable", "label": "Store Response in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_chat_bot_question": {
+      "id": "app_chat_bot_question",
+      "name": "Chat Bot Question",
+      "category": "chat_management",
+      "icon": "❓",
+      "color": "#9C27B0",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["answered", "timeout"]},
+      "properties": [
+        {"key": "chat_bot_question_label", "label": "Label", "type": "text", "placeholder": "Chat Bot Question", "required": true},
+        {"key": "chat_bot_question_type", "label": "Question Type", "type": "select", "options": [{"value": "other", "label": "Other Text"}, {"value": "contact_email", "label": "Email"}, {"value": "contact_name", "label": "Name"}, {"value": "contact_phone", "label": "Phone"}, {"value": "contact_multimedia", "label": "Multimedia"}], "default": "other"},
+        {"key": "chat_bot_question_text", "label": "Question Text", "type": "textarea", "placeholder": "Enter your question...", "showPredefinedVariables": true, "required": true},
+        {"key": "chat_bot_question_timeout", "label": "Answer Timeout (seconds)", "type": "number", "default": 0, "min": 0, "max": 3600},
+        {"key": "chat_bot_question_timeout_retries", "label": "Timeout Retries", "type": "number", "default": 0, "min": 0, "max": 10},
+        {"key": "chat_bot_question_delay", "label": "Delay (seconds)", "type": "number", "default": 3, "min": 1, "max": 30},
+        {"key": "chat_bot_question_variable", "label": "Store Answer in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_chat_bot_options": {
+      "id": "app_chat_bot_options",
+      "name": "Chat Bot Options",
+      "category": "chat_management",
+      "icon": "☑️",
+      "color": "#4CAF50",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": -1, "mode": "dynamic", "labels": ["option_1", "timeout", "invalid"]},
+      "properties": [
+        {"key": "chat_bot_select_label", "label": "Label", "type": "text", "placeholder": "Chat Bot Options", "required": true},
+        {"key": "chat_bot_select_text", "label": "Question Text", "type": "textarea", "placeholder": "Please select an option...", "showPredefinedVariables": true, "required": true},
+        {"key": "chat_bot_select_timeout", "label": "Timeout (seconds)", "type": "number", "default": 0, "min": 0, "max": 3600},
+        {"key": "chat_bot_select_variable", "label": "Store Selection in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_chat_reply_buttons": {
+      "id": "app_chat_reply_buttons",
+      "name": "Chat Bot Buttons",
+      "category": "chat_management",
+      "icon": "🔘",
+      "color": "#2196F3",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": -1, "mode": "dynamic", "labels": ["button_1", "timeout", "invalid"]},
+      "properties": [
+        {"key": "chat_bot_buttons_label", "label": "Label", "type": "text", "placeholder": "Chat Bot Buttons", "required": true},
+        {"key": "chat_bot_buttons_text", "label": "Message Text", "type": "textarea", "placeholder": "Enter message...", "showPredefinedVariables": true, "required": true},
+        {"key": "chat_bot_buttons_timeout", "label": "Timeout (seconds)", "type": "number", "default": 0, "min": 0, "max": 3600},
+        {"key": "chat_bot_buttons_variable", "label": "Store Selection in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_chat_reply": {
+      "id": "app_chat_reply",
+      "name": "Chat Reply",
+      "category": "chat_management",
+      "icon": "💬",
+      "color": "#2196F3",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "chat_bot_reply_label", "label": "Label", "type": "text", "placeholder": "Chat Reply", "required": true},
+        {"key": "chat_bot_reply_text", "label": "Reply Text", "type": "textarea", "placeholder": "Enter reply message...", "showPredefinedVariables": true, "required": true},
+        {"key": "chat_bot_reply_delay", "label": "Delay (seconds)", "type": "number", "default": 1, "min": 0, "max": 30}
+      ]
+    },
+    "app_chat_reply_multimedia": {
+      "id": "app_chat_reply_multimedia",
+      "name": "Chat Reply Multimedia",
+      "category": "chat_management",
+      "icon": "📷",
+      "color": "#E91E63",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "chat_reply_multimedia_label", "label": "Label", "type": "text", "placeholder": "Chat Reply Multimedia", "required": true},
+        {"key": "chat_reply_multimedia_url", "label": "Media URL", "type": "text", "placeholder": "https://example.com/image.jpg", "showPredefinedVariables": true, "required": true},
+        {"key": "chat_reply_multimedia_type", "label": "Media Type", "type": "select", "options": [{"value": "image", "label": "Image"}, {"value": "video", "label": "Video"}, {"value": "document", "label": "Document"}], "default": "image"}
+      ]
+    },
+    "app_whatsapp_question": {
+      "id": "app_whatsapp_question",
+      "name": "WA Question",
+      "category": "whatsapp_management",
+      "icon": "❓",
+      "color": "#25D366",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["answered", "timeout"]},
+      "properties": [
+        {"key": "whatsapp_question_label", "label": "Label", "type": "text", "placeholder": "WAQuestion", "required": true},
+        {"key": "whatsapp_question_text", "label": "Question Text", "type": "textarea", "placeholder": "Enter your question...", "showPredefinedVariables": true, "required": true},
+        {"key": "whatsapp_question_timeout", "label": "Timeout (seconds)", "type": "number", "default": 0, "min": 0, "max": 3600},
+        {"key": "whatsapp_question_variable", "label": "Store Answer in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_whatsapp_options": {
+      "id": "app_whatsapp_options",
+      "name": "WA Options",
+      "category": "whatsapp_management",
+      "icon": "☑️",
+      "color": "#128C7E",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": -1, "mode": "dynamic", "labels": ["option_1", "timeout", "invalid"]},
+      "properties": [
+        {"key": "whatsapp_select_label", "label": "Label", "type": "text", "placeholder": "WAOptions", "required": true},
+        {"key": "whatsapp_select_text", "label": "Question Text", "type": "textarea", "placeholder": "Please select an option...", "showPredefinedVariables": true, "required": true},
+        {"key": "whatsapp_select_timeout", "label": "Timeout (seconds)", "type": "number", "default": 0, "min": 0, "max": 3600},
+        {"key": "whatsapp_select_variable", "label": "Store Selection in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_whatsapp_reply": {
+      "id": "app_whatsapp_reply",
+      "name": "WA Reply",
+      "category": "whatsapp_management",
+      "icon": "💬",
+      "color": "#25D366",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "whatsapp_reply_label", "label": "Label", "type": "text", "placeholder": "WAReply", "required": true},
+        {"key": "whatsapp_reply_text", "label": "Reply Text", "type": "textarea", "placeholder": "Enter reply message...", "showPredefinedVariables": true, "required": true}
+      ]
+    },
+    "app_whatsapp_reply_multimedia": {
+      "id": "app_whatsapp_reply_multimedia",
+      "name": "WA Reply Multimedia",
+      "category": "whatsapp_management",
+      "icon": "📷",
+      "color": "#075E54",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 1, "max": 1, "mode": "fixed", "labels": ["next"]},
+      "properties": [
+        {"key": "whatsapp_reply_multimedia_label", "label": "Label", "type": "text", "placeholder": "WAReplyMultimedia", "required": true},
+        {"key": "whatsapp_reply_multimedia_url", "label": "Media URL", "type": "text", "placeholder": "https://example.com/image.jpg", "showPredefinedVariables": true, "required": true},
+        {"key": "whatsapp_reply_multimedia_type", "label": "Media Type", "type": "select", "options": [{"value": "image", "label": "Image"}, {"value": "video", "label": "Video"}, {"value": "document", "label": "Document"}], "default": "image"}
+      ]
+    },
+    "app_whatsapp_interactive": {
+      "id": "app_whatsapp_interactive",
+      "name": "WA Interactive",
+      "category": "whatsapp_management",
+      "icon": "👆",
+      "color": "#075E54",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 6, "max": 14, "mode": "dynamic", "labels": ["button_1", "button_2", "button_3", "timeout", "invalid", "continue"]},
+      "properties": [
+        {"key": "whatsapp_interactive_label", "label": "Label", "type": "text", "placeholder": "WAInteractive", "required": true},
+        {"key": "whatsapp_interactive_type", "label": "Type", "type": "select", "options": [{"value": "buttons", "label": "Buttons (3 max)"}, {"value": "list", "label": "List (10 max)"}], "default": "buttons", "description": "Buttons: 6 outputs, List: 14 outputs"},
+        {"key": "whatsapp_interactive_text", "label": "Message Text", "type": "textarea", "placeholder": "Enter interactive message...", "showPredefinedVariables": true, "required": true},
+        {"key": "whatsapp_interactive_timeout", "label": "Timeout (seconds)", "type": "number", "default": 0, "min": 0, "max": 3600},
+        {"key": "whatsapp_interactive_variable", "label": "Store Selection in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_whatsapp_ecommerce": {
+      "id": "app_whatsapp_ecommerce",
+      "name": "WA eCommerce",
+      "category": "whatsapp_management",
+      "icon": "🛒",
+      "color": "#25D366",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 4, "max": 33, "mode": "dynamic", "labels": ["product_1", "timeout", "invalid", "continue"]},
+      "properties": [
+        {"key": "whatsapp_ecommerce_label", "label": "Label", "type": "text", "placeholder": "WAECommerce", "required": true},
+        {"key": "whatsapp_ecommerce_type", "label": "Type", "type": "select", "options": [{"value": "single", "label": "Single Product (4 outputs)"}, {"value": "list", "label": "Product List (33 outputs)"}], "default": "single", "description": "Single: 4 outputs, List: 33 outputs"},
+        {"key": "whatsapp_ecommerce_text", "label": "Message Text", "type": "textarea", "placeholder": "Enter eCommerce message...", "showPredefinedVariables": true, "required": true},
+        {"key": "whatsapp_ecommerce_timeout", "label": "Timeout (seconds)", "type": "number", "default": 0, "min": 0, "max": 3600},
+        {"key": "whatsapp_ecommerce_variable", "label": "Store Selection in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_whatsapp_ecommerce_order": {
+      "id": "app_whatsapp_ecommerce_order",
+      "name": "WA eCommerce Order",
+      "category": "whatsapp_management",
+      "icon": "🛍️",
+      "color": "#128C7E",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "whatsapp_ecommerce_order_label", "label": "Label", "type": "text", "placeholder": "WAECommerceOrder", "required": true},
+        {"key": "whatsapp_ecommerce_order_variable", "label": "Store Order in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_whatsapp_template": {
+      "id": "app_whatsapp_template",
+      "name": "WA Template",
+      "category": "whatsapp_management",
+      "icon": "📝",
+      "color": "#34B7F1",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "whatsapp_template_label", "label": "Label", "type": "text", "placeholder": "WHATSAPP TEMPLATE", "required": true},
+        {"key": "whatsapp_template_gateway", "label": "WhatsApp Number", "type": "select_database", "query": "SELECT number, number as display FROM whatsapp_numbers WHERE status = 1", "valueField": "number", "labelField": "display", "placeholder": "Select Number", "required": true},
+        {"key": "whatsapp_template_destination", "label": "Destination", "type": "text", "placeholder": "Recipient phone number", "showPredefinedVariables": true, "required": true},
+        {"key": "whatsapp_template_template", "label": "WhatsApp Template", "type": "select_database", "query": "SELECT id, name FROM whatsapp_templates WHERE status = 1", "valueField": "id", "labelField": "name", "placeholder": "Select Template"},
+        {"key": "whatsapp_template_parameters", "label": "Template Parameters", "type": "text", "placeholder": "e.g., {{name}}, {{order_id}}", "showPredefinedVariables": true}
+      ]
+    },
+    "app_shopify_product_details": {
+      "id": "app_shopify_product_details",
+      "name": "Shopify Product Details",
+      "category": "ecommerce",
+      "icon": "🏷️",
+      "color": "#96BF48",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "shopify_product_details_label", "label": "Label", "type": "text", "placeholder": "Shopify Product Details", "required": true},
+        {"key": "shopify_product_details_api_user", "label": "API User", "type": "select_database", "query": "SELECT id, name FROM api_users WHERE status = 1", "valueField": "id", "labelField": "name", "placeholder": "Select API User"},
+        {"key": "shopify_product_details_integration", "label": "Shopify Integration", "type": "select_database", "query": "SELECT id, name FROM shopify_integrations WHERE status = 1", "valueField": "id", "labelField": "name", "placeholder": "Select Integration"},
+        {"key": "shopify_product_details_product_id", "label": "Product ID", "type": "text", "placeholder": "Product ID", "showPredefinedVariables": true},
+        {"key": "shopify_product_details_variable", "label": "Store in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_shopify_order_status": {
+      "id": "app_shopify_order_status",
+      "name": "Shopify Order Status",
+      "category": "ecommerce",
+      "icon": "📦",
+      "color": "#5C6AC4",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "shopify_order_status_label", "label": "Label", "type": "text", "placeholder": "Shopify Order Status", "required": true},
+        {"key": "shopify_order_status_operation", "label": "Operation", "type": "select", "options": [{"value": "get", "label": "Get Status"}, {"value": "set", "label": "Set Status"}], "default": "get"},
+        {"key": "shopify_order_status_api_user", "label": "API User", "type": "select_database", "query": "SELECT id, name FROM api_users WHERE status = 1", "valueField": "id", "labelField": "name", "placeholder": "Select API User"},
+        {"key": "shopify_order_status_integration", "label": "Shopify Integration", "type": "select_database", "query": "SELECT id, name FROM shopify_integrations WHERE status = 1", "valueField": "id", "labelField": "name", "placeholder": "Select Integration"},
+        {"key": "shopify_order_status_order_no", "label": "Order Number", "type": "text", "placeholder": "Order number", "showPredefinedVariables": true},
+        {"key": "shopify_order_status_status", "label": "Status", "type": "select", "options": [{"value": "cancel", "label": "Cancel"}, {"value": "open", "label": "Open"}, {"value": "close", "label": "Close"}], "default": "open"},
+        {"key": "shopify_order_status_variable", "label": "Store in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_shopify_order_update": {
+      "id": "app_shopify_order_update",
+      "name": "Shopify Order Update",
+      "category": "ecommerce",
+      "icon": "🔄",
+      "color": "#008060",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "shopify_order_update_label", "label": "Label", "type": "text", "placeholder": "Shopify Order Update", "required": true},
+        {"key": "shopify_order_update_api_user", "label": "API User", "type": "select_database", "query": "SELECT id, name FROM api_users WHERE status = 1", "valueField": "id", "labelField": "name", "placeholder": "Select API User"},
+        {"key": "shopify_order_update_integration", "label": "Shopify Integration", "type": "select_database", "query": "SELECT id, name FROM shopify_integrations WHERE status = 1", "valueField": "id", "labelField": "name", "placeholder": "Select Integration"},
+        {"key": "shopify_order_update_order_no", "label": "Order Number", "type": "text", "placeholder": "Order number", "showPredefinedVariables": true},
+        {"key": "shopify_order_update_data", "label": "Update Data", "type": "textarea", "placeholder": "JSON data to update", "showPredefinedVariables": true}
+      ]
+    },
+    "app_shopistan_order_status": {
+      "id": "app_shopistan_order_status",
+      "name": "Shopistan Order Status",
+      "category": "ecommerce",
+      "icon": "🛒",
+      "color": "#FF6B6B",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "shopistan_order_status_label", "label": "Label", "type": "text", "placeholder": "Shopistan Order Status", "required": true},
+        {"key": "shopistan_order_status_order_no", "label": "Order Number", "type": "text", "placeholder": "Order number", "showPredefinedVariables": true},
+        {"key": "shopistan_order_status_variable", "label": "Store in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_cx9_get_ticket": {
+      "id": "app_cx9_get_ticket",
+      "name": "CX9 Get Ticket",
+      "category": "cx9_apps",
+      "icon": "📥",
+      "color": "#2196F3",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["found", "not_found"]},
+      "properties": [
+        {"key": "cx9_get_ticket_label", "label": "Label", "type": "text", "placeholder": "CX9 Get Ticket", "required": true},
+        {"key": "cx9_get_ticket_id", "label": "Ticket ID", "type": "text", "placeholder": "Ticket ID", "showPredefinedVariables": true},
+        {"key": "cx9_get_ticket_variable", "label": "Store in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_cx9_ticket": {
+      "id": "app_cx9_ticket",
+      "name": "CX9 Ticket",
+      "category": "cx9_apps",
+      "icon": "🎫",
+      "color": "#FF9800",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "cx9_ticket_label", "label": "Label", "type": "text", "placeholder": "CX9 Ticket", "required": true},
+        {"key": "cx9_ticket_operation", "label": "Operation", "type": "select", "options": [{"value": "create", "label": "Create"}, {"value": "update", "label": "Update"}, {"value": "close", "label": "Close"}], "default": "create"},
+        {"key": "cx9_ticket_subject", "label": "Subject", "type": "text", "placeholder": "Ticket subject", "showPredefinedVariables": true},
+        {"key": "cx9_ticket_description", "label": "Description", "type": "textarea", "placeholder": "Ticket description", "showPredefinedVariables": true}
+      ]
+    },
+    "app_cx9_lead": {
+      "id": "app_cx9_lead",
+      "name": "CX9 Lead",
+      "category": "cx9_apps",
+      "icon": "💰",
+      "color": "#4CAF50",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "cx9_lead_label", "label": "Label", "type": "text", "placeholder": "CX9 Lead", "required": true},
+        {"key": "cx9_lead_operation", "label": "Operation", "type": "select", "options": [{"value": "create", "label": "Create"}, {"value": "update", "label": "Update"}], "default": "create"},
+        {"key": "cx9_lead_name", "label": "Name", "type": "text", "placeholder": "Lead name", "showPredefinedVariables": true},
+        {"key": "cx9_lead_phone", "label": "Phone", "type": "text", "placeholder": "Lead phone", "showPredefinedVariables": true},
+        {"key": "cx9_lead_email", "label": "Email", "type": "text", "placeholder": "Lead email", "showPredefinedVariables": true}
+      ]
+    },
+    "app_cx9_contact_verify": {
+      "id": "app_cx9_contact_verify",
+      "name": "CX9 Contact Verify",
+      "category": "cx9_apps",
+      "icon": "🔍",
+      "color": "#9C27B0",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["verified", "not_verified"]},
+      "properties": [
+        {"key": "cx9_contact_verify_label", "label": "Label", "type": "text", "placeholder": "CX9 Contact Verify", "required": true},
+        {"key": "cx9_contact_verify_phone", "label": "Phone", "type": "text", "placeholder": "Phone to verify", "showPredefinedVariables": true},
+        {"key": "cx9_contact_verify_variable", "label": "Store in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_cx9_contact": {
+      "id": "app_cx9_contact",
+      "name": "CX9 Contact",
+      "category": "cx9_apps",
+      "icon": "👤",
+      "color": "#607D8B",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "cx9_contact_label", "label": "Label", "type": "text", "placeholder": "CX9 Contact", "required": true},
+        {"key": "cx9_contact_operation", "label": "Operation", "type": "select", "options": [{"value": "create", "label": "Create"}, {"value": "update", "label": "Update"}, {"value": "get", "label": "Get"}], "default": "get"},
+        {"key": "cx9_contact_phone", "label": "Phone", "type": "text", "placeholder": "Contact phone", "showPredefinedVariables": true},
+        {"key": "cx9_contact_name", "label": "Name", "type": "text", "placeholder": "Contact name", "showPredefinedVariables": true},
+        {"key": "cx9_contact_variable", "label": "Store in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
+      ]
+    },
+    "app_cx9_company": {
+      "id": "app_cx9_company",
+      "name": "CX9 Company",
+      "category": "cx9_apps",
+      "icon": "🏢",
+      "color": "#795548",
+      "inputs": {"min": 1, "max": 1, "labels": ["input"]},
+      "outputs": {"min": 2, "max": 2, "mode": "fixed", "labels": ["success", "error"]},
+      "properties": [
+        {"key": "cx9_company_label", "label": "Label", "type": "text", "placeholder": "CX9 Company", "required": true},
+        {"key": "cx9_company_operation", "label": "Operation", "type": "select", "options": [{"value": "create", "label": "Create"}, {"value": "update", "label": "Update"}, {"value": "get", "label": "Get"}], "default": "get"},
+        {"key": "cx9_company_name", "label": "Company Name", "type": "text", "placeholder": "Company name", "showPredefinedVariables": true},
+        {"key": "cx9_company_variable", "label": "Store in Variable", "type": "select_database", "query": "SELECT name, name as display_name FROM yovo_tbl_ivr_variables", "valueField": "name", "labelField": "display_name", "placeholder": "Select Variable"}
       ]
     }
   }

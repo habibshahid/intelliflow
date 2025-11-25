@@ -597,6 +597,58 @@ Fetches options from database query.
 | `previewField` | string | Column for preview URL |
 | `searchable` | boolean | Enable search/filter (default: false) |
 | `searchPlaceholder` | string | Placeholder for search input |
+| `dependsOn` | string | Key of parent property (for cascading dropdowns) |
+| `disabledPlaceholder` | string | Placeholder when parent not selected |
+| `dependencyOptional` | boolean | If true, show fallback options when query returns empty |
+| `options` | array | Fallback options for dependencyOptional |
+
+#### Cascading Dropdowns (dependsOn)
+
+Use `dependsOn` to create parent-child dropdown relationships:
+
+```json
+{
+  "key": "category",
+  "label": "Category",
+  "type": "select_database",
+  "query": "SELECT id, name FROM categories WHERE active = 1",
+  "valueField": "id",
+  "labelField": "name"
+},
+{
+  "key": "subcategory",
+  "label": "Subcategory",
+  "type": "select_database",
+  "query": "SELECT id, name FROM subcategories WHERE category_id = {{category}}",
+  "valueField": "id",
+  "labelField": "name",
+  "dependsOn": "category",
+  "disabledPlaceholder": "Select a category first..."
+}
+```
+
+**How it works:**
+1. Child dropdown is disabled until parent has a value
+2. `{{category}}` placeholder in query is replaced with parent's selected value
+3. When parent changes, child value clears and options refresh
+4. Custom `disabledPlaceholder` shown when parent not selected
+
+#### Fallback Options (dependencyOptional)
+
+Use when you want to show static options if the database query returns empty:
+
+```json
+{
+  "key": "city",
+  "type": "select_database",
+  "query": "SELECT id, name FROM cities WHERE country_id = {{country}}",
+  "valueField": "id",
+  "labelField": "name",
+  "dependsOn": "country",
+  "dependencyOptional": true,
+  "options": ["New York", "London", "Tokyo", "Paris"]
+}
+```
 
 #### Property Types (for preview)
 

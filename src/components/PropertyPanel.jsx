@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { fetchSelectOptions } from '../services/databaseApi';
+import { fetchSelectOptions, fetchGroupedSelectOptions } from '../services/databaseApi';
 import { ChevronDown, RefreshCw, AlertCircle, Loader, Search, X } from 'lucide-react';
 import blockDefinitions from '../blockDefinitions.json';
 
@@ -10,49 +10,13 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
   const systemVariables = blockDefinitions.systemVariables || [];
 
   if (!selectedNode) {
-    return (
-      <div style={{
-        width: '320px',
-        background: '#fff',
-        borderLeft: '1px solid #e5e7eb',
-        padding: '20px',
-        overflowY: 'auto',
-        height: '100vh'
-      }}>
-        <div style={{ 
-          color: '#9ca3af', 
-          textAlign: 'center', 
-          marginTop: '100px',
-          fontSize: '14px'
-        }}>
-          Select a block to edit properties
-        </div>
-      </div>
-    );
+    return null;
   }
 
   const blockDef = selectedNode.data?.blockDef;
   
   if (!blockDef) {
-    return (
-      <div style={{
-        width: '320px',
-        background: '#fff',
-        borderLeft: '1px solid #e5e7eb',
-        padding: '20px',
-        overflowY: 'auto',
-        height: '100vh'
-      }}>
-        <div style={{ 
-          color: '#9ca3af', 
-          textAlign: 'center', 
-          marginTop: '100px',
-          fontSize: '14px'
-        }}>
-          Block definition not found
-        </div>
-      </div>
-    );
+    return null;
   }
 
   const properties = selectedNode.data.properties || {};
@@ -483,37 +447,88 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
     };
 
     // =====================================================
-    // SIMPLIFIED DATABASE SELECT - Just sends query to backend
+    // SIMPLIFIED DATABASE SELECT - Supports dependsOn for cascading
     // =====================================================
     const DatabaseSelectInput = ({ prop }) => {
       const [options, setOptions] = useState([]);
       const [loading, setLoading] = useState(false);
       const [error, setError] = useState(null);
 
-      useEffect(() => {
-        if (prop.query) {
-          loadOptions();
-        }
-      }, [prop.query]);
+      // Get parent value if dependsOn is set
+      const parentValue = prop.dependsOn ? properties[prop.dependsOn] : null;
+      const hasParentDependency = !!prop.dependsOn;
+      const isParentSelected = hasParentDependency ? !!parentValue : true;
 
-      const loadOptions = async () => {
+      // Build query with parent value substitution
+      const buildQuery = () => {
+        if (!prop.query) return null;
+        
+        let query = prop.query;
+        
+        // Replace {{parentKey}} placeholders with actual values
+        if (prop.dependsOn && parentValue) {
+          const placeholder = `{{${prop.dependsOn}}}`;
+          query = query.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), parentValue);
+        }
+        
+        return query;
+      };
+
+      // Load options when parent changes or on mount
+      useEffect(() => {
+        if (!isParentSelected) {
+          // Parent not selected - clear options and value
+          setOptions([]);
+          if (value) {
+            handlePropertyChange(prop.key, '');
+          }
+          return;
+        }
+
+        const query = buildQuery();
+        if (query) {
+          loadOptions(query);
+        }
+      }, [parentValue, prop.query]);
+
+      const loadOptions = async (query) => {
         try {
           setLoading(true);
           setError(null);
 
-          // Simple: just send query, valueField, labelField to backend
           const fetchedOptions = await fetchSelectOptions(
-            prop.query,
+            query,
             prop.valueField || 'id',
             prop.labelField || 'label',
             prop.previewField || null
           );
 
-          setOptions(fetchedOptions);
+          // If no results and dependencyOptional with fallback options
+          if (fetchedOptions.length === 0 && prop.dependencyOptional && prop.options) {
+            const fallbackOptions = prop.options.map(opt => ({
+              value: typeof opt === 'object' ? opt.value : opt,
+              label: typeof opt === 'object' ? opt.label : opt,
+              preview: null,
+            }));
+            setOptions(fallbackOptions);
+          } else {
+            setOptions(fetchedOptions);
+          }
         } catch (err) {
           console.error('Failed to load options:', err);
           setError(err.message);
-          setOptions([]);
+          
+          // On error, if dependencyOptional with fallback options, use them
+          if (prop.dependencyOptional && prop.options) {
+            const fallbackOptions = prop.options.map(opt => ({
+              value: typeof opt === 'object' ? opt.value : opt,
+              label: typeof opt === 'object' ? opt.label : opt,
+              preview: null,
+            }));
+            setOptions(fallbackOptions);
+          } else {
+            setOptions([]);
+          }
         } finally {
           setLoading(false);
         }
@@ -527,6 +542,18 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
         return renderPreview(prop.propertyType, selOption);
       };
 
+      // Determine placeholder text
+      const getPlaceholder = () => {
+        if (loading) return 'Loading...';
+        if (!isParentSelected) {
+          return prop.disabledPlaceholder || `Select ${prop.dependsOn} first...`;
+        }
+        return prop.placeholder || '-- Select --';
+      };
+
+      // Disabled state
+      const isDisabled = loading || !isParentSelected;
+
       // Use searchable component if searchable is true
       if (prop.searchable) {
         return (
@@ -535,12 +562,420 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
               options={options}
               value={value}
               onChange={(val) => handlePropertyChange(prop.key, val)}
-              placeholder={loading ? 'Loading...' : (prop.placeholder || '-- Select --')}
+              placeholder={getPlaceholder()}
               searchPlaceholder={prop.searchPlaceholder || 'Search...'}
-              disabled={loading}
+              disabled={isDisabled}
               renderPreview={renderDbPreview}
               selectedOption={selectedOption}
             />
+
+            {/* Dependency Info */}
+            {hasParentDependency && !isParentSelected && (
+              <div style={{
+                marginTop: '6px',
+                padding: '6px 10px',
+                background: '#fef3c7',
+                border: '1px solid #fcd34d',
+                borderRadius: '4px',
+                fontSize: '11px',
+                color: '#92400e',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}>
+                <AlertCircle size={14} />
+                <span>Select <strong>{prop.dependsOn}</strong> first</span>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {error && isParentSelected && (
+              <div style={{
+                marginTop: '6px',
+                padding: '6px 10px',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: '4px',
+                fontSize: '11px',
+                color: '#991b1b',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}>
+                <AlertCircle size={14} />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Refresh Button */}
+            {!loading && isParentSelected && (
+              <button
+                type="button"
+                onClick={() => loadOptions(buildQuery())}
+                style={{
+                  marginTop: '6px',
+                  padding: '4px 8px',
+                  fontSize: '11px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '4px',
+                  background: '#fff',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  color: '#374151',
+                  fontWeight: '500',
+                }}
+              >
+                <RefreshCw size={12} />
+                Refresh
+              </button>
+            )}
+          </div>
+        );
+      }
+
+      // Non-searchable: standard dropdown
+      return (
+        <div>
+          {/* Dropdown */}
+          <div style={{ position: 'relative' }}>
+            <select
+              value={value}
+              onChange={(e) => handlePropertyChange(prop.key, e.target.value)}
+              disabled={isDisabled}
+              style={{
+                ...inputBaseStyle,
+                cursor: isDisabled ? 'not-allowed' : 'pointer',
+                backgroundImage: isDisabled 
+                  ? 'none'
+                  : 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%236b7280\' d=\'M6 9L1.5 4.5h9z\'/%3E%3C/svg%3E")',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 10px center',
+                paddingRight: '32px',
+                appearance: 'none',
+                opacity: isDisabled ? 0.6 : 1,
+                backgroundColor: isDisabled ? '#f9fafb' : '#fff',
+              }}
+              onFocus={(e) => !isDisabled && (e.target.style.borderColor = '#3b82f6')}
+              onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+            >
+              <option value="">{getPlaceholder()}</option>
+              {options.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            
+            {loading && (
+              <div style={{
+                position: 'absolute',
+                right: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                pointerEvents: 'none',
+              }}>
+                <Loader size={16} color="#3b82f6" className="spin" />
+              </div>
+            )}
+          </div>
+
+          {/* Dependency Info */}
+          {hasParentDependency && !isParentSelected && (
+            <div style={{
+              marginTop: '6px',
+              padding: '6px 10px',
+              background: '#fef3c7',
+              border: '1px solid #fcd34d',
+              borderRadius: '4px',
+              fontSize: '11px',
+              color: '#92400e',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}>
+              <AlertCircle size={14} />
+              <span>Select <strong>{prop.dependsOn}</strong> first</span>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {error && isParentSelected && (
+            <div style={{
+              marginTop: '6px',
+              padding: '6px 10px',
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
+              borderRadius: '4px',
+              fontSize: '11px',
+              color: '#991b1b',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}>
+              <AlertCircle size={14} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Refresh Button */}
+          {!loading && isParentSelected && (
+            <button
+              type="button"
+              onClick={() => loadOptions(buildQuery())}
+              style={{
+                marginTop: '6px',
+                padding: '4px 8px',
+                fontSize: '11px',
+                border: '1px solid #d1d5db',
+                borderRadius: '4px',
+                background: '#fff',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                color: '#374151',
+                fontWeight: '500',
+              }}
+            >
+              <RefreshCw size={12} />
+              Refresh
+            </button>
+          )}
+
+          {/* Preview based on propertyType */}
+          {prop.propertyType && value && selectedOption && renderPreview(prop.propertyType, selectedOption)}
+        </div>
+      );
+    };
+
+    // =====================================================
+    // GROUPED DATABASE SELECT - Supports optgroups from multiple queries
+    // =====================================================
+    const GroupedDatabaseSelectInput = ({ prop }) => {
+      const [groupedOptions, setGroupedOptions] = useState([]);
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState(null);
+      const [isOpen, setIsOpen] = useState(false);
+      const [searchTerm, setSearchTerm] = useState('');
+      const dropdownRef = useRef(null);
+      const searchInputRef = useRef(null);
+
+      useEffect(() => {
+        if (prop.groups && prop.groups.length > 0) {
+          loadGroupedOptions();
+        }
+      }, [prop.groups]);
+
+      useEffect(() => {
+        const handleClickOutside = (event) => {
+          if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+            setIsOpen(false);
+          }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }, []);
+
+      useEffect(() => {
+        if (isOpen && searchInputRef.current) {
+          searchInputRef.current.focus();
+        }
+      }, [isOpen]);
+
+      const loadGroupedOptions = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          const results = await fetchGroupedSelectOptions(prop.groups);
+          setGroupedOptions(results);
+        } catch (err) {
+          console.error('Failed to load grouped options:', err);
+          setError(err.message);
+          setGroupedOptions([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      // Find selected option across all groups
+      const findSelectedOption = () => {
+        for (const group of groupedOptions) {
+          const found = group.options?.find(opt => opt.value == value);
+          if (found) return { ...found, groupLabel: group.label };
+        }
+        return null;
+      };
+
+      const selectedOption = findSelectedOption();
+
+      // Filter options based on search
+      const getFilteredGroups = () => {
+        if (!searchTerm) return groupedOptions;
+        
+        return groupedOptions.map(group => ({
+          ...group,
+          options: group.options?.filter(opt => 
+            (opt.label || '').toLowerCase().includes(searchTerm.toLowerCase())
+          ) || []
+        })).filter(group => group.options.length > 0);
+      };
+
+      const filteredGroups = getFilteredGroups();
+
+      const handleSelect = (optionValue) => {
+        handlePropertyChange(prop.key, optionValue);
+        setIsOpen(false);
+        setSearchTerm('');
+      };
+
+      const handleClear = () => {
+        handlePropertyChange(prop.key, '');
+        setSearchTerm('');
+      };
+
+      // Searchable grouped dropdown
+      if (prop.searchable) {
+        return (
+          <div ref={dropdownRef} style={{ position: 'relative' }}>
+            {/* Selected Value Display / Trigger */}
+            <div
+              onClick={() => !loading && setIsOpen(!isOpen)}
+              style={{
+                ...inputBaseStyle,
+                cursor: loading ? 'wait' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                opacity: loading ? 0.6 : 1,
+                backgroundColor: '#fff',
+              }}
+            >
+              <span style={{ 
+                overflow: 'hidden', 
+                textOverflow: 'ellipsis', 
+                whiteSpace: 'nowrap',
+                color: selectedOption ? '#1f2937' : '#9ca3af',
+              }}>
+                {loading ? 'Loading...' : (selectedOption ? selectedOption.label : (prop.placeholder || '-- Select --'))}
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {value && !loading && (
+                  <X
+                    size={14}
+                    style={{ cursor: 'pointer', color: '#6b7280' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleClear();
+                    }}
+                  />
+                )}
+                <ChevronDown size={16} style={{ color: '#6b7280' }} />
+              </div>
+            </div>
+
+            {/* Dropdown */}
+            {isOpen && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                marginTop: '4px',
+                background: '#fff',
+                border: '1px solid #e5e7eb',
+                borderRadius: '6px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                zIndex: 1000,
+                maxHeight: '300px',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+              }}>
+                {/* Search Input */}
+                <div style={{ padding: '8px', borderBottom: '1px solid #e5e7eb' }}>
+                  <div style={{ position: 'relative' }}>
+                    <Search size={14} style={{ 
+                      position: 'absolute', 
+                      left: '10px', 
+                      top: '50%', 
+                      transform: 'translateY(-50%)',
+                      color: '#9ca3af'
+                    }} />
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder={prop.searchPlaceholder || 'Search...'}
+                      style={{
+                        width: '100%',
+                        padding: '8px 8px 8px 32px',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '4px',
+                        fontSize: '13px',
+                        outline: 'none',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Options with Optgroups */}
+                <div style={{ overflowY: 'auto', maxHeight: '240px' }}>
+                  {filteredGroups.length === 0 ? (
+                    <div style={{ padding: '12px', textAlign: 'center', color: '#9ca3af', fontSize: '13px' }}>
+                      No results found
+                    </div>
+                  ) : (
+                    filteredGroups.map((group, groupIndex) => (
+                      <div key={groupIndex}>
+                        {/* Optgroup Label */}
+                        <div style={{
+                          padding: '8px 12px',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          color: '#6b7280',
+                          backgroundColor: '#f9fafb',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          borderTop: groupIndex > 0 ? '1px solid #e5e7eb' : 'none',
+                        }}>
+                          {group.label}
+                        </div>
+                        {/* Options in group */}
+                        {group.options?.map((option, optIndex) => (
+                          <div
+                            key={`${groupIndex}-${optIndex}`}
+                            onClick={() => handleSelect(option.value)}
+                            style={{
+                              padding: '10px 12px 10px 20px',
+                              cursor: 'pointer',
+                              fontSize: '13px',
+                              backgroundColor: option.value == value ? '#eff6ff' : 'transparent',
+                              color: option.value == value ? '#2563eb' : '#374151',
+                              borderLeft: option.value == value ? '3px solid #2563eb' : '3px solid transparent',
+                            }}
+                            onMouseEnter={(e) => {
+                              if (option.value != value) {
+                                e.currentTarget.style.background = '#f3f4f6';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (option.value != value) {
+                                e.currentTarget.style.background = 'transparent';
+                              }
+                            }}
+                          >
+                            {option.label}
+                          </div>
+                        ))}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Error Message */}
             {error && (
@@ -565,7 +1000,7 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
             {!loading && (
               <button
                 type="button"
-                onClick={loadOptions}
+                onClick={loadGroupedOptions}
                 style={{
                   marginTop: '6px',
                   padding: '4px 8px',
@@ -585,17 +1020,13 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
                 Refresh
               </button>
             )}
-
-            {/* Preview for non-searchable (searchable has it built in) */}
-            {!prop.searchable && prop.propertyType && value && selectedOption && renderPreview(prop.propertyType, selectedOption)}
           </div>
         );
       }
 
-      // Non-searchable: standard dropdown
+      // Non-searchable: standard select with optgroups
       return (
         <div>
-          {/* Dropdown */}
           <div style={{ position: 'relative' }}>
             <select
               value={value}
@@ -613,14 +1044,16 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
                 appearance: 'none',
                 opacity: loading ? 0.6 : 1,
               }}
-              onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-              onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
             >
               <option value="">{loading ? 'Loading...' : (prop.placeholder || '-- Select --')}</option>
-              {options.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
+              {groupedOptions.map((group, groupIndex) => (
+                <optgroup key={groupIndex} label={group.label}>
+                  {group.options?.map((option, optIndex) => (
+                    <option key={`${groupIndex}-${optIndex}`} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
             
@@ -660,7 +1093,7 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
           {!loading && (
             <button
               type="button"
-              onClick={loadOptions}
+              onClick={loadGroupedOptions}
               style={{
                 marginTop: '6px',
                 padding: '4px 8px',
@@ -680,9 +1113,209 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
               Refresh
             </button>
           )}
+        </div>
+      );
+    };
 
-          {/* Preview based on propertyType */}
-          {prop.propertyType && value && selectedOption && renderPreview(prop.propertyType, selectedOption)}
+    // =====================================================
+    // GROUPED STATIC SELECT - Optgroups from static options
+    // =====================================================
+    const GroupedStaticSelect = ({ groups, value, onChange, placeholder, searchPlaceholder }) => {
+      const [isOpen, setIsOpen] = useState(false);
+      const [searchTerm, setSearchTerm] = useState('');
+      const dropdownRef = useRef(null);
+      const searchInputRef = useRef(null);
+
+      useEffect(() => {
+        const handleClickOutside = (event) => {
+          if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+            setIsOpen(false);
+          }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }, []);
+
+      useEffect(() => {
+        if (isOpen && searchInputRef.current) {
+          searchInputRef.current.focus();
+        }
+      }, [isOpen]);
+
+      // Find selected option across all groups
+      const findSelectedOption = () => {
+        for (const group of groups) {
+          const found = group.options?.find(opt => opt.value == value);
+          if (found) return { ...found, groupLabel: group.label };
+        }
+        return null;
+      };
+
+      const selectedOption = findSelectedOption();
+
+      // Filter options based on search
+      const getFilteredGroups = () => {
+        if (!searchTerm) return groups;
+        
+        return groups.map(group => ({
+          ...group,
+          options: group.options?.filter(opt => 
+            (opt.label || '').toLowerCase().includes(searchTerm.toLowerCase())
+          ) || []
+        })).filter(group => group.options.length > 0);
+      };
+
+      const filteredGroups = getFilteredGroups();
+
+      const handleSelect = (optionValue) => {
+        onChange(optionValue);
+        setIsOpen(false);
+        setSearchTerm('');
+      };
+
+      const handleClear = () => {
+        onChange('');
+        setSearchTerm('');
+      };
+
+      return (
+        <div ref={dropdownRef} style={{ position: 'relative' }}>
+          {/* Selected Value Display / Trigger */}
+          <div
+            onClick={() => setIsOpen(!isOpen)}
+            style={{
+              ...inputBaseStyle,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: '#fff',
+            }}
+          >
+            <span style={{ 
+              overflow: 'hidden', 
+              textOverflow: 'ellipsis', 
+              whiteSpace: 'nowrap',
+              color: selectedOption ? '#1f2937' : '#9ca3af',
+            }}>
+              {selectedOption ? selectedOption.label : placeholder}
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              {value && (
+                <X
+                  size={14}
+                  style={{ cursor: 'pointer', color: '#6b7280' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleClear();
+                  }}
+                />
+              )}
+              <ChevronDown size={16} style={{ color: '#6b7280' }} />
+            </div>
+          </div>
+
+          {/* Dropdown */}
+          {isOpen && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              marginTop: '4px',
+              background: '#fff',
+              border: '1px solid #e5e7eb',
+              borderRadius: '6px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              zIndex: 1000,
+              maxHeight: '300px',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+            }}>
+              {/* Search Input */}
+              <div style={{ padding: '8px', borderBottom: '1px solid #e5e7eb' }}>
+                <div style={{ position: 'relative' }}>
+                  <Search size={14} style={{ 
+                    position: 'absolute', 
+                    left: '10px', 
+                    top: '50%', 
+                    transform: 'translateY(-50%)',
+                    color: '#9ca3af'
+                  }} />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder={searchPlaceholder}
+                    style={{
+                      width: '100%',
+                      padding: '8px 8px 8px 32px',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '4px',
+                      fontSize: '13px',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Options with Optgroups */}
+              <div style={{ overflowY: 'auto', maxHeight: '240px' }}>
+                {filteredGroups.length === 0 ? (
+                  <div style={{ padding: '12px', textAlign: 'center', color: '#9ca3af', fontSize: '13px' }}>
+                    No results found
+                  </div>
+                ) : (
+                  filteredGroups.map((group, groupIndex) => (
+                    <div key={groupIndex}>
+                      {/* Optgroup Label */}
+                      <div style={{
+                        padding: '8px 12px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        color: '#6b7280',
+                        backgroundColor: '#f9fafb',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        borderTop: groupIndex > 0 ? '1px solid #e5e7eb' : 'none',
+                      }}>
+                        {group.label}
+                      </div>
+                      {/* Options in group */}
+                      {group.options?.map((option, optIndex) => (
+                        <div
+                          key={`${groupIndex}-${optIndex}`}
+                          onClick={() => handleSelect(option.value)}
+                          style={{
+                            padding: '10px 12px 10px 20px',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            backgroundColor: option.value == value ? '#eff6ff' : 'transparent',
+                            color: option.value == value ? '#2563eb' : '#374151',
+                            borderLeft: option.value == value ? '3px solid #2563eb' : '3px solid transparent',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (option.value != value) {
+                              e.currentTarget.style.background = '#f3f4f6';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (option.value != value) {
+                              e.currentTarget.style.background = 'transparent';
+                            }
+                          }}
+                        >
+                          {option.label}
+                        </div>
+                      ))}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </div>
       );
     };
@@ -886,7 +1519,64 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
         );
 
       case 'select':
-        // Convert static options to searchable format
+        // Check if this select has groups (optgroups)
+        if (prop.groups && prop.groups.length > 0) {
+          // Static optgroups
+          if (prop.searchable) {
+            // Searchable grouped select
+            const groupedOptions = prop.groups.map(group => ({
+              label: group.label,
+              options: (group.options || []).map(opt => ({
+                value: typeof opt === 'object' ? opt.value : opt,
+                label: typeof opt === 'object' ? opt.label : opt,
+              }))
+            }));
+
+            return (
+              <GroupedStaticSelect
+                groups={groupedOptions}
+                value={value}
+                onChange={(val) => handlePropertyChange(prop.key, val)}
+                placeholder={prop.placeholder || '-- Select --'}
+                searchPlaceholder={prop.searchPlaceholder || 'Search...'}
+              />
+            );
+          }
+
+          // Non-searchable static optgroups
+          return (
+            <select
+              value={value}
+              onChange={(e) => handlePropertyChange(prop.key, e.target.value)}
+              style={{
+                ...inputBaseStyle,
+                cursor: 'pointer',
+                backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%236b7280\' d=\'M6 9L1.5 4.5h9z\'/%3E%3C/svg%3E")',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 10px center',
+                paddingRight: '32px',
+                appearance: 'none'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+              onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+            >
+              <option value="">{prop.placeholder || '-- Select --'}</option>
+              {prop.groups.map((group, groupIndex) => (
+                <optgroup key={groupIndex} label={group.label}>
+                  {(group.options || []).map((opt, optIndex) => {
+                    const optValue = typeof opt === 'object' ? opt.value : opt;
+                    const optLabel = typeof opt === 'object' ? opt.label : opt;
+                    return (
+                      <option key={`${groupIndex}-${optIndex}`} value={optValue}>{optLabel}</option>
+                    );
+                  })}
+                </optgroup>
+              ))}
+            </select>
+          );
+        }
+
+        // Convert static options to searchable format (no groups)
         const selectOptions = (prop.options || []).map(opt => ({
           value: typeof opt === 'object' ? opt.value : opt,
           label: typeof opt === 'object' ? opt.label : opt,
@@ -921,13 +1611,19 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
             onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
           >
             <option value="">{prop.placeholder || '-- Select --'}</option>
-            {prop.options.map(option => (
-              <option key={option} value={option}>{option}</option>
-            ))}
+            {(prop.options || []).map((opt, idx) => {
+              const optValue = typeof opt === 'object' ? opt.value : opt;
+              const optLabel = typeof opt === 'object' ? opt.label : opt;
+              return <option key={idx} value={optValue}>{optLabel}</option>;
+            })}
           </select>
         );
 
       case 'select_database':
+        // Check if this has groups (database optgroups)
+        if (prop.groups && prop.groups.length > 0) {
+          return <GroupedDatabaseSelectInput prop={prop} />;
+        }
         return <DatabaseSelectInput prop={prop} />;
 
       default:

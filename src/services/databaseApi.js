@@ -39,6 +39,43 @@ export const fetchSelectOptions = async (query, valueField, labelField, previewF
 };
 
 /**
+ * Fetch options for grouped select (optgroups) - multiple queries
+ * @param {Array} groups - Array of group definitions
+ * @returns {Promise<Array>} Array of { label, options } groups
+ */
+export const fetchGroupedSelectOptions = async (groups) => {
+  try {
+    const results = await Promise.all(
+      groups.map(async (group) => {
+        try {
+          const options = await fetchSelectOptions(
+            group.query,
+            group.valueField,
+            group.labelField,
+            group.previewField || null
+          );
+          return {
+            label: group.label,
+            options: options,
+          };
+        } catch (error) {
+          console.error(`Failed to fetch group "${group.label}":`, error);
+          return {
+            label: group.label,
+            options: [],
+            error: error.message,
+          };
+        }
+      })
+    );
+    return results;
+  } catch (error) {
+    console.error('fetchGroupedSelectOptions error:', error);
+    throw error;
+  }
+};
+
+/**
  * Test if backend is available
  * @returns {Promise<boolean>}
  */

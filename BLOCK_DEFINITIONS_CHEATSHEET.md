@@ -103,6 +103,26 @@
 }
 ```
 
+### select_database (cascading/dependent)
+```json
+{
+  "key": "category",
+  "type": "select_database",
+  "query": "SELECT id, name FROM categories",
+  "valueField": "id",
+  "labelField": "name"
+},
+{
+  "key": "item",
+  "type": "select_database",
+  "query": "SELECT id, name FROM items WHERE category_id = {{category}}",
+  "valueField": "id",
+  "labelField": "name",
+  "dependsOn": "category",
+  "disabledPlaceholder": "Select category first..."
+}
+```
+
 | propertyType | Preview |
 |--------------|---------|
 | `media_audio` | Audio player |
@@ -187,6 +207,21 @@
 | `propertyType` | select_database | Preview type |
 | `searchable` | select, select_database | Enable search filter |
 | `searchPlaceholder` | select, select_database | Search input placeholder |
+| `dependsOn` | select_database | Parent property key (cascading) |
+| `disabledPlaceholder` | select_database | Placeholder when parent not selected |
+| `dependencyOptional` | select_database | Use fallback options if query empty |
+
+## 🔧 Validation Script
+
+Run validation:
+```bash
+npm run validate
+```
+
+Or directly:
+```bash
+node scripts/validateBlockDefinitions.js [path-to-file]
+```
 
 ---
 
