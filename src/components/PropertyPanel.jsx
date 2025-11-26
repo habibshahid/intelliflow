@@ -2,8 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { fetchSelectOptions, fetchGroupedSelectOptions } from '../services/databaseApi';
 import { ChevronDown, RefreshCw, AlertCircle, Loader, Search, X } from 'lucide-react';
 import blockDefinitions from '../blockDefinitions.json';
+import { 
+  DatabasePropertyComponent, 
+  VariablesPropertyComponent, 
+  TimestampPropertyComponent 
+} from './CustomPropertyComponents';
 
-const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, onCloneNode }) => {
+const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, onCloneNode, flowContext = {} }) => {
   const [newBranchName, setNewBranchName] = useState('');
   
   // System variables from blockDefinitions
@@ -20,15 +25,42 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
   }
 
   const properties = selectedNode.data.properties || {};
+  const propertyLabels = selectedNode.data.propertyLabels || {};
   const outputLabels = selectedNode.data.outputLabels || [...(blockDef.outputs.labels || [])];
   const isDynamicOutputs = blockDef.outputs.mode === 'dynamic';
 
-  const handlePropertyChange = (key, value) => {
+  const handlePropertyChange = (key, value, label) => {
+    // If label is provided, update both property and label together
+    if (label !== undefined) {
+      onUpdateNode(selectedNode.id, {
+        ...selectedNode.data,
+        properties: {
+          ...properties,
+          [key]: value
+        },
+        propertyLabels: {
+          ...propertyLabels,
+          [key]: label
+        }
+      });
+    } else {
+      onUpdateNode(selectedNode.id, {
+        ...selectedNode.data,
+        properties: {
+          ...properties,
+          [key]: value
+        }
+      });
+    }
+  };
+
+  // Store the display label for a property (shown on canvas)
+  const handleLabelChange = (key, label) => {
     onUpdateNode(selectedNode.id, {
       ...selectedNode.data,
-      properties: {
-        ...properties,
-        [key]: value
+      propertyLabels: {
+        ...propertyLabels,
+        [key]: label
       }
     });
   };
@@ -238,15 +270,16 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
         }
       }, [isOpen]);
 
-      const handleSelect = (optionValue) => {
-        onChange(optionValue);
+      const handleSelect = (option) => {
+        // Pass both value and label to onChange
+        onChange(option.value, option.label);
         setIsOpen(false);
         setSearchTerm('');
       };
 
       const handleClear = (e) => {
         e.stopPropagation();
-        onChange('');
+        onChange('', '');
         setSearchTerm('');
       };
 
@@ -411,7 +444,7 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
                   filteredOptions.map((option) => (
                     <div
                       key={option.value}
-                      onClick={() => handleSelect(option.value)}
+                      onClick={() => handleSelect(option)}
                       style={{
                         padding: '10px 12px',
                         cursor: 'pointer',
@@ -456,6 +489,8 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
 
       // Get parent value if dependsOn is set
       const parentValue = prop.dependsOn ? properties[prop.dependsOn] : null;
+      // Get parent's full row data if available (stored as _fieldKey_rowData)
+      const parentRowData = prop.dependsOn ? properties[`_${prop.dependsOn}_rowData`] : null;
       const hasParentDependency = !!prop.dependsOn;
       const isParentSelected = hasParentDependency ? !!parentValue : true;
 
@@ -465,13 +500,56 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
         
         let query = prop.query;
         
-        // Replace {{parentKey}} placeholders with actual values
         if (prop.dependsOn && parentValue) {
+          // Replace {{parentKey}} with parent's value
           const placeholder = `{{${prop.dependsOn}}}`;
           query = query.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), parentValue);
+          
+          // Replace {{parentKey.columnName}} with specific column from parent's row data
+          if (parentRowData) {
+            const columnPattern = new RegExp(`\\{\\{${prop.dependsOn}\\.([^}]+)\\}\\}`, 'g');
+            query = query.replace(columnPattern, (match, columnName) => {
+              const columnValue = parentRowData[columnName];
+              if (columnValue !== undefined) {
+                // Escape single quotes for SQL safety
+                return String(columnValue).replace(/'/g, "''");
+              }
+              console.warn(`Column "${columnName}" not found in parent row data. Available:`, Object.keys(parentRowData));
+              return match; // Leave placeholder if column not found
+            });
+          }
         }
         
         return query;
+      };
+
+      // Store selected option's full row data for child fields to access
+      const handleSelectWithRowData = (selectedValue, selectedOption) => {
+        // Store both the value AND the full row data for child fields
+        const newProperties = {
+          ...properties,
+          [prop.key]: selectedValue,
+        };
+        
+        // If option has raw data (from database), store it for child queries
+        if (selectedOption && selectedOption.raw) {
+          newProperties[`_${prop.key}_rowData`] = selectedOption.raw;
+        } else {
+          // Clear row data if no option selected
+          delete newProperties[`_${prop.key}_rowData`];
+        }
+        
+        // Also update the label for canvas display
+        const newPropertyLabels = {
+          ...propertyLabels,
+          [prop.key]: selectedOption?.label || selectedValue || ''
+        };
+        
+        onUpdateNode(selectedNode.id, {
+          ...selectedNode.data,
+          properties: newProperties,
+          propertyLabels: newPropertyLabels
+        });
       };
 
       // Load options when parent changes or on mount
@@ -489,7 +567,7 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
         if (query) {
           loadOptions(query);
         }
-      }, [parentValue, prop.query]);
+      }, [parentValue, parentRowData, prop.query]);
 
       const loadOptions = async (query) => {
         try {
@@ -500,7 +578,8 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
             query,
             prop.valueField || 'id',
             prop.labelField || 'label',
-            prop.previewField || null
+            prop.previewField || null,
+            flowContext
           );
 
           // If no results and dependencyOptional with fallback options
@@ -561,7 +640,11 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
             <SearchableSelect
               options={options}
               value={value}
-              onChange={(val) => handlePropertyChange(prop.key, val)}
+              onChange={(val, label) => {
+                // Find the selected option to get its raw data
+                const selectedOpt = options.find(opt => opt.value == val);
+                handleSelectWithRowData(val, selectedOpt);
+              }}
               placeholder={getPlaceholder()}
               searchPlaceholder={prop.searchPlaceholder || 'Search...'}
               disabled={isDisabled}
@@ -642,7 +725,11 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
           <div style={{ position: 'relative' }}>
             <select
               value={value}
-              onChange={(e) => handlePropertyChange(prop.key, e.target.value)}
+              onChange={(e) => {
+                const selectedVal = e.target.value;
+                const selectedOpt = options.find(opt => opt.value == selectedVal);
+                handleSelectWithRowData(selectedVal, selectedOpt);
+              }}
               disabled={isDisabled}
               style={{
                 ...inputBaseStyle,
@@ -788,7 +875,7 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
         try {
           setLoading(true);
           setError(null);
-          const results = await fetchGroupedSelectOptions(prop.groups);
+          const results = await fetchGroupedSelectOptions(prop.groups, flowContext);
           setGroupedOptions(results);
         } catch (err) {
           console.error('Failed to load grouped options:', err);
@@ -799,11 +886,20 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
         }
       };
 
-      // Find selected option across all groups
+      // Find selected option across all groups, including the group's propertyType
       const findSelectedOption = () => {
-        for (const group of groupedOptions) {
+        for (let i = 0; i < groupedOptions.length; i++) {
+          const group = groupedOptions[i];
           const found = group.options?.find(opt => opt.value == value);
-          if (found) return { ...found, groupLabel: group.label };
+          if (found) {
+            // Get propertyType from the original group definition
+            const groupDef = prop.groups?.[i];
+            return { 
+              ...found, 
+              groupLabel: group.label,
+              propertyType: groupDef?.propertyType || null
+            };
+          }
         }
         return null;
       };
@@ -824,14 +920,18 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
 
       const filteredGroups = getFilteredGroups();
 
-      const handleSelect = (optionValue) => {
+      const handleSelect = (optionValue, optionLabel) => {
+        // Store the value
         handlePropertyChange(prop.key, optionValue);
+        // Store the label for canvas display
+        handleLabelChange(prop.key, optionLabel || optionValue);
         setIsOpen(false);
         setSearchTerm('');
       };
 
       const handleClear = () => {
         handlePropertyChange(prop.key, '');
+        handleLabelChange(prop.key, '');
         setSearchTerm('');
       };
 
@@ -947,7 +1047,7 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
                         {group.options?.map((option, optIndex) => (
                           <div
                             key={`${groupIndex}-${optIndex}`}
-                            onClick={() => handleSelect(option.value)}
+                            onClick={() => handleSelect(option.value, option.label)}
                             style={{
                               padding: '10px 12px 10px 20px',
                               cursor: 'pointer',
@@ -1020,6 +1120,9 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
                 Refresh
               </button>
             )}
+
+            {/* Media Preview for grouped selects */}
+            {selectedOption && selectedOption.propertyType && selectedOption.preview && renderPreview(selectedOption.propertyType, selectedOption)}
           </div>
         );
       }
@@ -1113,6 +1216,9 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
               Refresh
             </button>
           )}
+
+          {/* Media Preview for grouped selects */}
+          {selectedOption && selectedOption.propertyType && selectedOption.preview && renderPreview(selectedOption.propertyType, selectedOption)}
         </div>
       );
     };
@@ -1167,14 +1273,14 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
 
       const filteredGroups = getFilteredGroups();
 
-      const handleSelect = (optionValue) => {
-        onChange(optionValue);
+      const handleSelect = (optionValue, optionLabel) => {
+        onChange(optionValue, optionLabel);
         setIsOpen(false);
         setSearchTerm('');
       };
 
       const handleClear = () => {
-        onChange('');
+        onChange('', '');
         setSearchTerm('');
       };
 
@@ -1287,7 +1393,7 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
                       {group.options?.map((option, optIndex) => (
                         <div
                           key={`${groupIndex}-${optIndex}`}
-                          onClick={() => handleSelect(option.value)}
+                          onClick={() => handleSelect(option.value, option.label)}
                           style={{
                             padding: '10px 12px 10px 20px',
                             cursor: 'pointer',
@@ -1536,7 +1642,10 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
               <GroupedStaticSelect
                 groups={groupedOptions}
                 value={value}
-                onChange={(val) => handlePropertyChange(prop.key, val)}
+                onChange={(val, label) => {
+                  handlePropertyChange(prop.key, val);
+                  handleLabelChange(prop.key, label || val);
+                }}
                 placeholder={prop.placeholder || '-- Select --'}
                 searchPlaceholder={prop.searchPlaceholder || 'Search...'}
               />
@@ -1547,7 +1656,23 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
           return (
             <select
               value={value}
-              onChange={(e) => handlePropertyChange(prop.key, e.target.value)}
+              onChange={(e) => {
+                const selectedVal = e.target.value;
+                // Find label from options
+                let selectedLabel = selectedVal;
+                for (const group of prop.groups) {
+                  const found = (group.options || []).find(opt => {
+                    const optVal = typeof opt === 'object' ? opt.value : opt;
+                    return String(optVal) === selectedVal;
+                  });
+                  if (found) {
+                    selectedLabel = typeof found === 'object' ? found.label : found;
+                    break;
+                  }
+                }
+                handlePropertyChange(prop.key, selectedVal);
+                handleLabelChange(prop.key, selectedLabel);
+              }}
               style={{
                 ...inputBaseStyle,
                 cursor: 'pointer',
@@ -1587,7 +1712,10 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
             <SearchableSelect
               options={selectOptions}
               value={value}
-              onChange={(val) => handlePropertyChange(prop.key, val)}
+              onChange={(val, label) => {
+                handlePropertyChange(prop.key, val);
+                handleLabelChange(prop.key, label || val);
+              }}
               placeholder={prop.placeholder || '-- Select --'}
               searchPlaceholder={prop.searchPlaceholder || 'Search...'}
             />
@@ -1597,7 +1725,18 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
         return (
           <select
             value={value}
-            onChange={(e) => handlePropertyChange(prop.key, e.target.value)}
+            onChange={(e) => {
+              const selectedVal = e.target.value;
+              const foundOpt = (prop.options || []).find(opt => {
+                const optVal = typeof opt === 'object' ? opt.value : opt;
+                return String(optVal) === selectedVal;
+              });
+              const selectedLabel = foundOpt 
+                ? (typeof foundOpt === 'object' ? foundOpt.label : foundOpt)
+                : selectedVal;
+              handlePropertyChange(prop.key, selectedVal);
+              handleLabelChange(prop.key, selectedLabel);
+            }}
             style={{
               ...inputBaseStyle,
               cursor: 'pointer',
@@ -1620,6 +1759,51 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
         );
 
       case 'select_database':
+        // Check for timestamp properties (gotoiftime, gotoiftimemulti)
+        if (prop.key === 'gotoiftime_condition' || prop.key === 'gotoiftimemulti_condition') {
+          return (
+            <TimestampPropertyComponent
+              value={value}
+              onChange={(val, label) => handlePropertyChange(prop.key, val, label)}
+              onLabelChange={(label) => handleLabelChange(prop.key, label)}
+              flowContext={flowContext}
+              prop={prop}
+            />
+          );
+        }
+        
+        // Check for variable properties (contains _variable in key and queries variables table)
+        const isVariableProperty = (
+          prop.key?.includes('_variable') || 
+          prop.key === 'ivr_variable' ||
+          prop.key?.includes('variable_name')
+        ) && prop.query?.toLowerCase().includes('variable');
+        
+        if (isVariableProperty) {
+          return (
+            <VariablesPropertyComponent
+              value={value}
+              onChange={(val, label) => handlePropertyChange(prop.key, val, label)}
+              onLabelChange={(label) => handleLabelChange(prop.key, label)}
+              flowContext={flowContext}
+              prop={prop}
+            />
+          );
+        }
+        
+        // Check for database connection property
+        if (prop.key === 'database_connection' || prop.key === 'db_connection' || prop.customComponent === 'database') {
+          return (
+            <DatabasePropertyComponent
+              value={value}
+              onChange={(val, label) => handlePropertyChange(prop.key, val, label)}
+              onLabelChange={(label) => handleLabelChange(prop.key, label)}
+              flowContext={flowContext}
+              prop={prop}
+            />
+          );
+        }
+        
         // Check if this has groups (database optgroups)
         if (prop.groups && prop.groups.length > 0) {
           return <GroupedDatabaseSelectInput prop={prop} />;
@@ -1710,6 +1894,175 @@ const PropertyPanel = ({ selectedNode, blockTypes, onUpdateNode, onDeleteNode, o
               {renderPropertyInput(prop)}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Fixed Output Branch Selector - for blocks with many fixed outputs */}
+      {!isDynamicOutputs && blockDef.outputs.labels && blockDef.outputs.labels.length > 4 && (
+        <div style={{ marginBottom: '24px' }}>
+          <h4 style={{ 
+            fontSize: '13px', 
+            fontWeight: '600', 
+            marginBottom: '12px',
+            color: '#374151',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            Output Branches
+            <span style={{ 
+              fontSize: '10px', 
+              fontWeight: '600', 
+              background: '#fef3c7',
+              color: '#92400e',
+              padding: '2px 8px',
+              borderRadius: '12px',
+              textTransform: 'none',
+              letterSpacing: 'normal'
+            }}>
+              {(selectedNode.data.enabledOutputs || blockDef.outputs.labels).length} / {blockDef.outputs.labels.length} Active
+            </span>
+          </h4>
+
+          <div style={{
+            fontSize: '11px',
+            color: '#6b7280',
+            marginBottom: '12px',
+            padding: '8px 10px',
+            background: '#f9fafb',
+            borderRadius: '6px',
+          }}>
+            💡 Select which output branches to show on the canvas. Disabled branches won't appear but can be re-enabled anytime.
+          </div>
+
+          {/* Quick Actions */}
+          <div style={{ 
+            display: 'flex', 
+            gap: '8px', 
+            marginBottom: '12px',
+            paddingBottom: '12px',
+            borderBottom: '1px solid #f3f4f6'
+          }}>
+            <button
+              onClick={() => {
+                onUpdateNode(selectedNode.id, {
+                  ...selectedNode.data,
+                  enabledOutputs: blockDef.outputs.labels.map((_, idx) => idx)
+                });
+              }}
+              style={{
+                padding: '6px 12px',
+                fontSize: '11px',
+                background: '#f3f4f6',
+                border: '1px solid #e5e7eb',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: '500',
+              }}
+            >
+              ✓ Enable All
+            </button>
+            <button
+              onClick={() => {
+                onUpdateNode(selectedNode.id, {
+                  ...selectedNode.data,
+                  enabledOutputs: []
+                });
+              }}
+              style={{
+                padding: '6px 12px',
+                fontSize: '11px',
+                background: '#f3f4f6',
+                border: '1px solid #e5e7eb',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: '500',
+              }}
+            >
+              ✗ Disable All
+            </button>
+          </div>
+          
+          {/* Output checkboxes in a compact grid */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(2, 1fr)', 
+            gap: '6px',
+            maxHeight: '300px',
+            overflowY: 'auto',
+            padding: '4px',
+          }}>
+            {blockDef.outputs.labels.map((label, index) => {
+              const enabledOutputs = selectedNode.data.enabledOutputs || blockDef.outputs.labels.map((_, idx) => idx);
+              const isEnabled = enabledOutputs.includes(index);
+              
+              return (
+                <label 
+                  key={index}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 10px',
+                    background: isEnabled ? '#ecfdf5' : '#f9fafb',
+                    border: `1px solid ${isEnabled ? '#a7f3d0' : '#e5e7eb'}`,
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = isEnabled ? '#34d399' : '#d1d5db';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = isEnabled ? '#a7f3d0' : '#e5e7eb';
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isEnabled}
+                    onChange={(e) => {
+                      let newEnabledOutputs;
+                      if (e.target.checked) {
+                        newEnabledOutputs = [...enabledOutputs, index].sort((a, b) => a - b);
+                      } else {
+                        newEnabledOutputs = enabledOutputs.filter(i => i !== index);
+                      }
+                      onUpdateNode(selectedNode.id, {
+                        ...selectedNode.data,
+                        enabledOutputs: newEnabledOutputs
+                      });
+                    }}
+                    style={{
+                      width: '16px',
+                      height: '16px',
+                      accentColor: '#10b981',
+                      cursor: 'pointer',
+                    }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      color: isEnabled ? '#065f46' : '#6b7280',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {label}
+                    </div>
+                    <div style={{
+                      fontSize: '10px',
+                      color: '#9ca3af',
+                    }}>
+                      Index: {index}
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
         </div>
       )}
 

@@ -5,7 +5,8 @@ import {
   Maximize2, 
   Download, 
   Upload,
-  Trash2 
+  Trash2,
+  Settings
 } from 'lucide-react';
 
 const Toolbar = ({ 
@@ -16,6 +17,10 @@ const Toolbar = ({
   onImport,
   onClear 
 }) => {
+  const openBlockEditor = () => {
+    window.open('/block-editor.html', '_blank');
+  };
+
   return (
     <div style={{
       position: 'absolute',
@@ -68,7 +73,7 @@ const Toolbar = ({
       <button
         onClick={onExport}
         style={buttonStyle}
-        title="Export JSON"
+        title="Export Flow JSON"
         onMouseOver={(e) => e.currentTarget.style.background = '#f3f4f6'}
         onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
       >
@@ -78,7 +83,7 @@ const Toolbar = ({
       <button
         onClick={onImport}
         style={buttonStyle}
-        title="Import JSON"
+        title="Import Flow JSON"
         onMouseOver={(e) => e.currentTarget.style.background = '#f3f4f6'}
         onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
       >
@@ -86,6 +91,21 @@ const Toolbar = ({
       </button>
 
       <div style={{ width: '1px', background: '#e5e7eb', margin: '4px 4px' }} />
+
+      {/* Block Editor */}
+      <button
+        onClick={openBlockEditor}
+        style={{ ...buttonStyle, color: '#6366f1' }}
+        title="Block Definition Editor"
+        onMouseOver={(e) => {
+          e.currentTarget.style.background = '#eef2ff';
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.background = 'transparent';
+        }}
+      >
+        <Settings size={18} />
+      </button>
 
       {/* Clear */}
       <button

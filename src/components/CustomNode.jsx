@@ -2,26 +2,65 @@ import React from 'react';
 import { Handle, Position } from 'reactflow';
 
 const CustomNode = ({ data, selected }) => {
-  const { blockDef, properties = {}, outputLabels = [] } = data;
+  const { blockDef, properties = {}, propertyLabels = {}, outputLabels = [], enabledOutputs = null } = data;
 
-  // Get output labels
-  const getOutputLabels = () => {
-    if (blockDef.outputs.mode === 'dynamic' && outputLabels.length > 0) {
-      return outputLabels;
+  // Get output labels and their indices based on mode
+  const getActiveOutputs = () => {
+    const isDynamic = blockDef.outputs.mode === 'dynamic';
+    const baseLabels = blockDef.outputs.labels || [];
+    
+    if (isDynamic) {
+      // For dynamic outputs, use outputLabels if available, otherwise base labels
+      const labels = outputLabels.length > 0 ? outputLabels : baseLabels;
+      return labels.map((label, idx) => ({ label, index: idx, originalIndex: idx }));
+    } else {
+      // For fixed outputs, filter by enabledOutputs if set
+      if (enabledOutputs && enabledOutputs.length > 0) {
+        // Only show enabled outputs, but preserve their original index for handle IDs
+        return enabledOutputs
+          .map(idx => ({ 
+            label: baseLabels[idx] || `Output ${idx}`, 
+            index: idx,
+            originalIndex: idx 
+          }))
+          .sort((a, b) => a.index - b.index);
+      }
+      // Show all outputs by default
+      return baseLabels.map((label, idx) => ({ label, index: idx, originalIndex: idx }));
     }
-    return blockDef.outputs.labels || [];
   };
 
-  const activeOutputLabels = getOutputLabels();
-  const hasOutputs = blockDef.outputs.max > 0;
+  const activeOutputs = getActiveOutputs();
+  const hasOutputs = blockDef.outputs.max > 0 || blockDef.outputs.max === -1;
+  const totalBaseOutputs = blockDef.outputs.labels?.length || 0;
+  const showingSubset = enabledOutputs && enabledOutputs.length < totalBaseOutputs && blockDef.outputs.mode !== 'dynamic';
 
-  // Get property preview
+  // Get property preview - show label if available, otherwise value
   const getPropertyPreview = () => {
     const entries = Object.entries(properties);
     if (entries.length === 0) return null;
-    const [key, value] = entries[0];
-    const displayValue = String(value).substring(0, 30);
-    return displayValue ? `${displayValue}${String(value).length > 30 ? '...' : ''}` : null;
+    
+    // Find the first property with a value
+    for (const [key, value] of entries) {
+      // Skip internal properties (starting with _)
+      if (key.startsWith('_')) continue;
+      if (!value && value !== 0 && value !== false) continue;
+      
+      // Use the stored label if available, otherwise use the value
+      const displayValue = propertyLabels[key] || String(value);
+      
+      // Find the property definition to get its label
+      const propDef = blockDef.properties?.find(p => p.key === key);
+      const propLabel = propDef?.label || key;
+      
+      // Truncate if too long
+      const truncated = displayValue.length > 25 
+        ? displayValue.substring(0, 25) + '...' 
+        : displayValue;
+      
+      return truncated;
+    }
+    return null;
   };
 
   const propertyPreview = getPropertyPreview();
@@ -63,7 +102,7 @@ const CustomNode = ({ data, selected }) => {
       {/* HEADER SECTION */}
       <div style={{ 
         padding: '12px 16px',
-        borderBottom: hasOutputs && activeOutputLabels.length > 0 ? '1px solid #e5e7eb' : 'none',
+        borderBottom: hasOutputs && activeOutputs.length > 0 ? '1px solid #e5e7eb' : 'none',
         background: '#fff',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -109,14 +148,29 @@ const CustomNode = ({ data, selected }) => {
               </div>
             )}
           </div>
+
+          {/* Badge showing subset of outputs */}
+          {showingSubset && (
+            <div style={{
+              fontSize: '9px',
+              background: '#fef3c7',
+              color: '#92400e',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              fontWeight: '600',
+            }}>
+              {activeOutputs.length}/{totalBaseOutputs}
+            </div>
+          )}
         </div>
       </div>
 
       {/* OUTPUT BRANCHES AS ROWS */}
-      {hasOutputs && activeOutputLabels.length > 0 ? (
+      {hasOutputs && activeOutputs.length > 0 ? (
         <div style={{ position: 'relative' }}>
-          {activeOutputLabels.map((label, index) => {
-            const handleId = `output-${index}`;
+          {activeOutputs.map((output, displayIndex) => {
+            // Use originalIndex for handle ID to maintain connection compatibility
+            const handleId = `output-${output.originalIndex}`;
             
             return (
               <div
@@ -127,7 +181,7 @@ const CustomNode = ({ data, selected }) => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  borderBottom: index < activeOutputLabels.length - 1 ? '1px solid #f3f4f6' : 'none',
+                  borderBottom: displayIndex < activeOutputs.length - 1 ? '1px solid #f3f4f6' : 'none',
                   background: 'transparent',
                   transition: 'background 0.15s ease',
                   minHeight: '40px',
@@ -149,8 +203,24 @@ const CustomNode = ({ data, selected }) => {
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
                 }}>
-                  {label}
+                  {/* Show index badge for fixed outputs */}
+                  {blockDef.outputs.mode !== 'dynamic' && totalBaseOutputs > 5 && (
+                    <span style={{
+                      fontSize: '10px',
+                      background: '#f3f4f6',
+                      color: '#6b7280',
+                      padding: '1px 5px',
+                      borderRadius: '3px',
+                      fontWeight: '600',
+                    }}>
+                      {output.originalIndex}
+                    </span>
+                  )}
+                  {output.label}
                 </div>
 
                 {/* Arrow indicator */}

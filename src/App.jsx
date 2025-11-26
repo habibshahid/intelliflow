@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import ReactFlow, {
   addEdge,
   Background,
@@ -28,12 +28,28 @@ const edgeTypes = {
 
 let nodeId = 1;
 
+// Extract ALL URL parameters for flow context
+const getUrlParams = () => {
+  const params = new URLSearchParams(window.location.search);
+  const context = {};
+  
+  // Capture ALL URL parameters
+  for (const [key, value] of params.entries()) {
+    context[key] = value;
+  }
+  
+  return context;
+};
+
 function FlowCanvas() {
   const reactFlowWrapper = useRef(null);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
+
+  // Flow context from URL parameters
+  const flowContext = useMemo(() => getUrlParams(), []);
 
   const blockTypes = blockDefinitions.blockTypes;
 
@@ -185,7 +201,8 @@ function FlowCanvas() {
       data: {
         ...node.data,
         properties: { ...node.data.properties },
-        ...(node.data.outputLabels && { outputLabels: [...node.data.outputLabels] })
+        ...(node.data.outputLabels && { outputLabels: [...node.data.outputLabels] }),
+        ...(node.data.enabledOutputs && { enabledOutputs: [...node.data.enabledOutputs] })
       }
     };
 
@@ -201,7 +218,8 @@ function FlowCanvas() {
         type: node.type === 'custom' ? node.data.blockDef.id : node.type,
         position: node.position,
         properties: node.data.properties || {},
-        ...(node.data.outputLabels && { outputLabels: node.data.outputLabels })
+        ...(node.data.outputLabels && { outputLabels: node.data.outputLabels }),
+        ...(node.data.enabledOutputs && { enabledOutputs: node.data.enabledOutputs })
       })),
       connections: edges.map(edge => ({
         id: edge.id,
@@ -244,7 +262,8 @@ function FlowCanvas() {
             data: {
               blockDef: blockTypes[block.type],
               properties: block.properties || {},
-              ...(block.outputLabels && { outputLabels: block.outputLabels })
+              ...(block.outputLabels && { outputLabels: block.outputLabels }),
+              ...(block.enabledOutputs && { enabledOutputs: block.enabledOutputs })
             }
           }));
           
@@ -361,6 +380,7 @@ function FlowCanvas() {
           onUpdateNode={onUpdateNode}
           onDeleteNode={onDeleteNode}
           onCloneNode={onCloneNode}
+          flowContext={flowContext}
         />
       )}
     </div>
